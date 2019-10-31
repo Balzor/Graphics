@@ -26,4 +26,8 @@ void Renderer::RenderScene()	{
 
 	SwapBuffers();	
 }
+void* glMapBuffer(GLenum target, GLenum access) {
+
+}
+
 
