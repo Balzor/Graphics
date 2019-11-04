@@ -53,6 +53,9 @@ int main() {
 		renderer.SetScale(scale);
 		renderer.SetPosition(position);
 		renderer.RenderScene();
+
+		renderer.UpdateScene(w.GetTimer()->GetTimedMS());
+		renderer.RenderScene();
 	}
 
 	return 0;
