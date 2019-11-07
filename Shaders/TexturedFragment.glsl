@@ -1,4 +1,5 @@
 #version 150
+
 uniform sampler2D diffuseTex;
 
 in Vertex {

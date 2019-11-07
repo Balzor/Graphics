@@ -1,7 +1,8 @@
 #pragma comment(lib, "nclgl.lib")
 
 #include "../../nclGL/window.h"
-#include "Renderer.h"
+#include "renderer.h"
+//#include "renderer.h"
 
 int main() {
 	Window w("Texturing!", 800,600,false);	 //This is all boring win32 window creation stuff!
@@ -36,6 +37,6 @@ int main() {
 
 		renderer.RenderScene();
 	}
-
+	
 	return 0;
 }
