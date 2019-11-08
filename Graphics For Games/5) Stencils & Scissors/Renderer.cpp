@@ -34,8 +34,8 @@ void Renderer::RenderScene() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	if (usingScissor) {
 		glEnable(GL_SCISSOR_TEST);
-		glScissor((float)width / 2.5f, (float)height / 2.5, 
-				  (float)width / 5.0f, (float)height / 5.0f);
+		glScissor((float)width / 2.5f, (float)height / 2.5,
+			(float)width / 5.0f, (float)height / 5.0f);
 	}
 
 	glUseProgram(currentShader->GetProgram());
@@ -60,5 +60,5 @@ void Renderer::RenderScene() {
 	glDisable(GL_SCISSOR_TEST);
 	glDisable(GL_STENCIL_TEST);
 
-	SwapBuffers;
+	SwapBuffers();
 }
