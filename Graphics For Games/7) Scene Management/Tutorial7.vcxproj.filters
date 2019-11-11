@@ -2,5 +2,17 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="Tutorial7.cpp" />
+    <ClCompile Include="Plane.cpp" />
+    <ClCompile Include="Frustum.cpp" />
+    <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="Robot.cpp" />
+    <ClCompile Include="SceneNode.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Plane.h" />
+    <ClInclude Include="Frustum.h" />
+    <ClInclude Include="Renderer.h" />
+    <ClInclude Include="Robot.h" />
+    <ClInclude Include="SceneNode.h" />
   </ItemGroup>
 </Project>

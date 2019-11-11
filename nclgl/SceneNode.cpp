@@ -5,6 +5,9 @@ SceneNode::SceneNode(Mesh* mesh, Vector4 colour) {
 	this->colour = colour;
 	parent = NULL;
 	modelScale = Vector3(1, 1, 1);
+	//scene management
+	boundingRadius = 1.0f;
+	distanceFromCamera = 1.0f;
 }
 
 SceneNode::~SceneNode(void) {
@@ -17,7 +20,7 @@ void SceneNode::AddChild(SceneNode* s) {
 	children.push_back(s);
 	s->parent = this;
 }
-void SceneNode::Draw(const OGLRenderer& r){
+void SceneNode::Draw(const OGLRenderer& r) {
 	if (mesh) { mesh->Draw(); }
 }
 void SceneNode::Update(float msec) {

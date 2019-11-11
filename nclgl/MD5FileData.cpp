@@ -1,6 +1,5 @@
 #include "MD5FileData.h"
-#ifdef USE_MD5MESH
-#ifdef WEEK_2_CODE
+
 /*
 http://www.modwiki.net/wiki/MD5MESH_%28file_format%29
 */
@@ -568,6 +567,7 @@ void	MD5FileData::BindTextureBuffers() const {
 	glActiveTexture(GL_TEXTURE0 + MD5_TRANSFORM_TEXNUM);
 	glBindTexture(GL_TEXTURE_BUFFER, transformTexture);
 	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F,transformBuffer);
+	glActiveTexture(GL_TEXTURE0);	//prevents bacon textured hellknights
 }
 
 //Here's where we actually fill in the 'transforms' memory we created
@@ -632,5 +632,3 @@ int			MD5FileData::GetIndexForJointName(const string &name) const {
 	}
 	return -1;
 }
-#endif
-#endif

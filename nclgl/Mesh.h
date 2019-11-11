@@ -2,7 +2,11 @@
 #include "OGLRenderer.h"
 
 enum MeshBuffer {
-	VERTEX_BUFFER, COLOUR_BUFFER, TEXTURE_BUFFER, MAX_BUFFER
+	VERTEX_BUFFER,
+	COLOUR_BUFFER,
+	TEXTURE_BUFFER,
+	INDEX_BUFFER,
+	MAX_BUFFER
 };
 class Mesh {
 public:
@@ -29,4 +33,6 @@ protected:
 	Vector3* vertices;
 	Vector4* colours;
 	
+	GLuint numIndices;
+	unsigned int* indices;
 };

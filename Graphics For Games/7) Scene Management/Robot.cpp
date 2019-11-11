@@ -51,7 +51,7 @@ CuteRobot::CuteRobot(void) {
 	leftLeg->SetModelScale(Vector3(3, -17.5, 3));
 	leftLeg->SetTransform(Matrix4::Translation(Vector3(-8, 0, 0)));
 	body->AddChild(leftLeg);
-	
+
 	SceneNode* rightLeg = new SceneNode(cube, Vector4(0, 0, 1, 1));
 	rightLeg->SetModelScale(Vector3(3, -17.5, 3));
 	rightLeg->SetTransform(Matrix4::Translation(Vector3(8, 0, 0)));
@@ -92,11 +92,11 @@ void CuteRobot::Update(float msec) {
 	//	counter -= 0.16f;
 	//else
 	//	counter += 0.16f;
-	
+
 	printf("%.2f\n", sinf(accTime));
 	//printf("%.2f\n", RadToDeg(sinf(counter)));
 	//if(counter)
-	head->SetTransform(cachedHeadTransform * Matrix4::Rotation(rAngle * sinf(accTime * rSpeed) , Vector3(0, 0, 1)));
+	head->SetTransform(cachedHeadTransform * Matrix4::Rotation(rAngle * sinf(accTime * rSpeed), Vector3(0, 0, 1)));
 	leftArm->SetTransform(cachedLeftArmTransform * Matrix4::Rotation(rAngle * sinf(-accTime * rSpeed), Vector3(1, 0, 0)));
 	rightArm->SetTransform(cachedRightArmTransform * Matrix4::Rotation(rAngle * sinf(accTime * rSpeed), Vector3(1, 0, 0)));
 	accTime += msec / 1000.f;
