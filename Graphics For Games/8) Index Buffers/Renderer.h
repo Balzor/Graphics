@@ -15,5 +15,3 @@ protected:
 	HeightMap* heightMap;
 	Camera* camera;
 };
-
-

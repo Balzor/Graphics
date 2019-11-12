@@ -2,7 +2,7 @@
 #include "Plane.h"
 #include "SceneNode.h"
 #include "..//..//nclgl/Matrix4.h"
-class Matrix4; //w have to compile the matrix4 first
+class Matrix4; //we have to compile the matrix4 first
 
 class Frustum {
 public:

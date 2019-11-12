@@ -14,4 +14,26 @@
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="CourseWork.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>Resource Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HeightMap.cpp">
+      <Filter>Resource Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Renderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HeightMap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Light.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>
