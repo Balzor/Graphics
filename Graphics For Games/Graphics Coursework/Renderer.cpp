@@ -138,8 +138,6 @@ void Renderer::UpdateScene(float msec) {
 	 lightPos = rot * lightPos;
 	 light->SetPosition(lightPos);
 	 
-	 sun->SetPosition(light->GetPosition());
-	 
 	//end of light
 	waterRotate += msec / 1000.0f;
 	//scale model
@@ -318,7 +316,7 @@ void Renderer::DrawFloor() {
 }
 
 void Renderer::DrawSun() {
-	modelMatrix = Matrix4::Rotation(90, Vector3(1, 1, 0)) *
+	modelMatrix = Matrix4::Translation(light->GetPosition())* Matrix4::Rotation(90, Vector3(1, 1, 0)) *
 		Matrix4::Scale(Vector3(100, 100, 100));
 	Matrix4 tempMatrix = textureMatrix * modelMatrix;
 
