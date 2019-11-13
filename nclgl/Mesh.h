@@ -25,6 +25,9 @@ public:
 	void SetBumpMap(GLuint tex) { bumpTexture = tex; }
 	GLuint GetBumpMap() { return bumpTexture; }
 
+	Vector3 GetPosition() const { return position; }
+	void SetPosition(Vector3 val) { position = val; }
+
 protected:
 	void GenerateTangents();
 	Vector3 GenerateTangent(const Vector3& a, const Vector3& b, const Vector3& c, const Vector2& ta, const Vector2& tb, const Vector2& tc );
@@ -39,6 +42,8 @@ protected:
 
 	GLuint texture;
 	Vector2* textureCoords;
+
+	Vector3 position;
 
 	Vector3* normals;
 	Vector3* vertices;

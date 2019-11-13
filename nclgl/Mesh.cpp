@@ -20,6 +20,7 @@ Mesh::Mesh(void) {
 	//tangents
 	tangents = NULL;
 	bumpTexture = 0;
+	
 }
 Mesh::~Mesh(void) {
 	glDeleteVertexArrays(1, &arrayObject);

@@ -24,6 +24,9 @@
     <ClCompile Include="HeightMap.cpp">
       <Filter>Resource Files</Filter>
     </ClCompile>
+    <ClCompile Include="TextMesh.cpp">
+      <Filter>Resource Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Renderer.h">
@@ -33,6 +36,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Light.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TextMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
