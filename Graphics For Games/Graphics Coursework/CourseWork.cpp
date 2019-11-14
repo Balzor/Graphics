@@ -5,10 +5,7 @@
 #pragma comment(lib, "nclgl.lib")
 
 int main() {
-	double lastTime = glfwGetTime();
-	int nbFrames = 0;
-
-	Window w("Coursework!", 1200, 1000, false);
+	Window w("Coursework!", 1024, 720, false);
 	if (!w.HasInitialised()) {
 		return -1;
 	}
@@ -21,16 +18,19 @@ int main() {
 	w.LockMouseToWindow(true);
 	w.ShowOSPointer(false);
 
+	int counter = 0;
+	float time_acc = 0.0f;
 	while (w.UpdateWindow() && !Window::GetKeyboard()->KeyDown(KEYBOARD_ESCAPE)) {
-		double currentTime = glfwGetTime();
-		nbFrames++;
-		if (currentTime - lastTime >= 1.0) {
-			printf("%f ms/frame\n", 1000.0 / double(nbFrames));
-			nbFrames = 0;
-			lastTime += 1.0;
+		float dt = w.GetTimer()->GetTimedMS();
+		time_acc += dt;
+		counter++;
+		if (time_acc >= 1000.0f) {
+			renderer.SetFps(counter);
+			time_acc = 0.0f;
+			counter = 0;
 		}
 
-		renderer.UpdateScene(w.GetTimer()->GetTimedMS());
+		renderer.UpdateScene(dt);
 		renderer.RenderScene();
 	}
 	return 0;

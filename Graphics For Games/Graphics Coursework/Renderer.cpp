@@ -8,25 +8,28 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 	quad = Mesh::GenerateQuad();
 	floor = Mesh::GenerateQuad();
 
-	sun = Mesh::GenerateQuad();
+	sun = new OBJMesh();
+	sun->LoadOBJMesh(MESHDIR"sphere.obj");
 
 	camera->SetPosition(Vector3(RAW_WIDTH * HEIGHTMAP_X / 2.0f, 2000, RAW_HEIGHT * HEIGHTMAP_X));
 
 	basicFont = new Font(SOIL_load_OGL_texture(TEXTUREDIR"tahoma.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_COMPRESS_TO_DXT), 16, 16);
 
-	//light = new Light(Vector3((RAW_HEIGHT * HEIGHTMAP_X / 2.0f), 500.0f, (RAW_HEIGHT * HEIGHTMAP_Z / 2.0f)), Vector4(.9f, .9f, 1.0f, .1), (RAW_WIDTH * HEIGHTMAP_X) / 2.0f);
-
-	light = new Light(Vector3(-450.0f,2000.0f,2800.0f),Vector4(.9,.9,1,1),55000.0f);
-
-	SceneNode* circle = new SceneNode(0, Vector4(1, 0, 0, 1));
+	light = new Light(Vector3(-450.0f,2000.0f,2800.0f),Vector4(.9,.9,1,.4),100000.0f);
 	
-	
+	bobData = new MD5FileData(MESHDIR"bob_lamp_update_export.md5mesh");
+	bobNode = new MD5Node(*bobData);
+
+	bobData->AddAnim(MESHDIR"bob_lamp_update_export.md5anim");
+	bobNode->PlayAnim(MESHDIR"bob_lamp_update_export.md5anim");
 
 	hellData = new MD5FileData(MESHDIR"hellknight.md5mesh");
 	hellNode = new MD5Node(*hellData);
 
 	hellData->AddAnim(MESHDIR"idle2.md5anim");
 	hellNode->PlayAnim(MESHDIR"idle2.md5anim");
+
+	textShader = new Shader(SHADERDIR"TexturedVertex.glsl", SHADERDIR"TexturedFragment.glsl");
 
 	sceneShader = new Shader(SHADERDIR"shadowscenevert.glsl", SHADERDIR"shadowscenefrag.glsl");
 
@@ -38,7 +41,7 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 
 	lightShader = new Shader(SHADERDIR"PerPixelVertex.glsl", SHADERDIR"PerPixelFragment.glsl");
 
-	if (!reflectShader->LinkProgram() || !skyboxShader->LinkProgram() || !lightShader->LinkProgram() || !sceneShader->LinkProgram() || !shadowShader->LinkProgram()) {
+	if (!reflectShader->LinkProgram() || !skyboxShader->LinkProgram() || !lightShader->LinkProgram() || !sceneShader->LinkProgram() || !shadowShader->LinkProgram() ||!textShader->LinkProgram()) {
 		return;
 	}
 
@@ -56,15 +59,16 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 	glDrawBuffer(GL_NONE);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	floor->SetTexture(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
+	floor->SetTexture(SOIL_load_OGL_texture(TEXTUREDIR"Asphalt road texture-1.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
-	floor->SetBumpMap(SOIL_load_OGL_texture(TEXTUREDIR"brickDOT3.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
+	floor->SetBumpMap(SOIL_load_OGL_texture(TEXTUREDIR"asphaltBumpMap.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 	
-	sun->SetTexture(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
+	
 
-	sun->SetBumpMap(SOIL_load_OGL_texture(TEXTUREDIR"brickDOT3.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
+	sun->SetTexture(SOIL_load_OGL_texture(TEXTUREDIR"water.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
 	quad->SetTexture(SOIL_load_OGL_texture(TEXTUREDIR"water.TGA", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
+
 
 	heightMap->SetTexture(SOIL_load_OGL_texture(TEXTUREDIR"Barren Reds.JPG", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
@@ -78,12 +82,12 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 		//TEXTUREDIR"rusted_south.jpg",
 		//TEXTUREDIR"rusted_north.jpg",
 
-		TEXTUREDIR"darkskies_ft.tga",
-		TEXTUREDIR"darkskies_bk.tga",
-		TEXTUREDIR"darkskies_up.tga",
-		TEXTUREDIR"darkskies_dn.tga",
-		TEXTUREDIR"darkskies_rt.tga",
-		TEXTUREDIR"darkskies_lf.tga",
+		TEXTUREDIR"goldrush_ft.tga",
+		TEXTUREDIR"goldrush_bk.tga",
+		TEXTUREDIR"goldrush_up.tga",
+		TEXTUREDIR"goldrush_dn.tga",
+		TEXTUREDIR"goldrush_rt.tga",
+		TEXTUREDIR"goldrush_lf.tga",
 		SOIL_LOAD_RGB,
 		SOIL_CREATE_NEW_ID, 0
 	);
@@ -92,6 +96,7 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 		return;
 	}
 
+	SetTextureRepeating(floor->GetTexture(), true);
 	SetTextureRepeating(quad->GetTexture(), true);
 	SetTextureRepeating(heightMap->GetTexture(), true);
 	SetTextureRepeating(heightMap->GetBumpMap(), true);
@@ -105,7 +110,7 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-	glEnable(GL_CULL_FACE);
+	//glEnable(GL_CULL_FACE);
 	
 }
 Renderer::~Renderer(void) {
@@ -129,7 +134,7 @@ Renderer::~Renderer(void) {
 }
 int counter = 0;
 void Renderer::UpdateScene(float msec) {
-	projMatrix = Matrix4::Perspective(1.0f, 150000.0f, (float)width / (float)height, 45.0f);
+	projMatrix = Matrix4::Perspective(10.0f, 150000.0f, (float)width / (float)height, 45.0f);
 	camera->UpdateCamera(msec);
 	viewMatrix = camera->BuildViewMatrix();
 	//light circling
@@ -150,8 +155,7 @@ void Renderer::UpdateScene(float msec) {
 	}
 	//end of scale model
 	hellNode->Update(msec);
-	//DrawText("This is orthographic text!", Vector3(0, 0, 0), 16.0f);
-
+	bobNode->Update(msec);
 }
 
 void Renderer::RenderScene() {
@@ -164,20 +168,19 @@ void Renderer::RenderScene() {
 	DrawCombinedScene();
 	
 	SwapBuffers();
-
-
 }
 
-void Renderer::DrawText(const std::string& text, const Vector3& position, const float size, const bool perspective) {
+void Renderer::DrawTexts(const std::string& text, const Vector3& position, const float size, const bool perspective) {
 	TextMesh* mesh = new TextMesh(text, *basicFont);
 	if (perspective) {
-	//	modelMatrix = Matrix4::Translation(position) * Matrix4::Scale(Vector3(size, size, 1));
-	//	viewMatrix = camera->BuildViewMatrix();
-	//	projMatrix = Matrix4::Perspective(1.0f, 10000.0f, (float)width / (float)height, 45.0f);
+		//	modelMatrix = Matrix4::Translation(position) * Matrix4::Scale(Vector3(size, size, 1));
+		//	viewMatrix = camera->BuildViewMatrix();
+		//	projMatrix = Matrix4::Perspective(1.0f, 10000.0f, (float)width / (float)height, 45.0f);
 	}
 	else {
 		modelMatrix = Matrix4::Translation(Vector3(position.x, height - position.y, position.z)) * Matrix4::Scale(Vector3(size, size, 1));
 		viewMatrix.ToIdentity();
+		textureMatrix.ToIdentity();
 		projMatrix = Matrix4::Orthographic(-1.0f, 1.0f, (float)width, 0.0f, (float)height, 0.0f);
 	}
 	UpdateShaderMatrices();
@@ -218,6 +221,7 @@ void Renderer::DrawHeightMap() {
 }
 
 void Renderer::DrawWater() {
+	glDepthMask(GL_FALSE);
 	SetCurrentShader(reflectShader);
 	SetShaderLight(*light);
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"),1, (float*)& camera->GetPosition());
@@ -235,18 +239,20 @@ void Renderer::DrawWater() {
 
 	float heightZ = (RAW_HEIGHT * HEIGHTMAP_Z / 2.0f);
 
-	modelMatrix = Matrix4::Translation(Vector3(heightX, heightY, heightZ)) *
-					Matrix4::Scale(Vector3(heightX, 1, heightZ)) *
+	modelMatrix = Matrix4::Translation(Vector3(1,-10,1)) *
+					Matrix4::Scale(Vector3(1000000, 1, 1000000)) *
 					Matrix4::Rotation(90, Vector3(1.0f, 0.0f, 0.0f));
 
-	textureMatrix= Matrix4::Scale(Vector3(10.0f, 10.0f, 10.0f))*
-		Matrix4::Rotation(waterRotate, Vector3(0.0f, 0.0f, 1.0f));
+	textureMatrix= Matrix4::Scale(Vector3(1000.0f, 1000.0f, 1000.0f))*
+			Matrix4::Rotation(waterRotate/100, Vector3(0.0f, 0.0f, 1.0f));
 
 	UpdateShaderMatrices();
 
 	quad->Draw();
 
 	glUseProgram(0);
+	glDepthMask(GL_TRUE);
+
  }
 
 void Renderer::DrawShadowScene() {
@@ -288,6 +294,14 @@ void Renderer::DrawCombinedScene() {
 	DrawMesh();
 
 	glUseProgram(0);
+	//glUseProgram(textShader->GetProgram());
+
+	SetCurrentShader(textShader);
+	glDisable(GL_DEPTH_TEST);
+	stringstream s;
+	s << fps;
+	DrawTexts("FPS:"+s.str(), Vector3(0, 0, 0), 17.0f);
+	glEnable(GL_DEPTH_TEST);
 }
 void Renderer::DrawMesh() {
 	modelMatrix = (hellNode->GetWorldTransform() * Matrix4::Scale(hellNode->GetModelScale()));
@@ -300,13 +314,14 @@ void Renderer::DrawMesh() {
 	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "modelMatrix"), 1, false, (float*) &modelMatrix);
 
 	hellNode->Draw(*this);
+	bobNode->Draw(*this);
 	
 }
 
 void Renderer::DrawFloor() {
 	modelMatrix = Matrix4::Rotation(90, Vector3(1, 0, 0)) *
 		Matrix4::Scale(Vector3(100, 100, 1));
-	Matrix4 tempMatrix = textureMatrix * modelMatrix;
+		Matrix4 tempMatrix = textureMatrix * modelMatrix;
 
 	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "textureMatrix"), 1, false, *&tempMatrix.values);
 
@@ -318,7 +333,7 @@ void Renderer::DrawFloor() {
 void Renderer::DrawSun() {
 	modelMatrix = Matrix4::Translation(light->GetPosition())* Matrix4::Rotation(90, Vector3(1, 1, 0)) *
 		Matrix4::Scale(Vector3(100, 100, 100));
-	Matrix4 tempMatrix = textureMatrix * modelMatrix;
+		Matrix4 tempMatrix = textureMatrix * modelMatrix;
 
 	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "textureMatrix"), 1, false, *&tempMatrix.values);
 
