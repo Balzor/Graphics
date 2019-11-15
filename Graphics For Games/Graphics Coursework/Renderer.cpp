@@ -1,9 +1,10 @@
 #include "Renderer.h"
 
 Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
-	
+	//https://blackboard.ncl.ac.uk/bbcswebdav/pid-3988113-dt-content-rid-13884232_1/courses/J1920-CSC8502/Tutorial%2011%20-%20Geometry%20Shader%20Focus.pdf
+	//https://blackboard.ncl.ac.uk/bbcswebdav/pid-3988112-dt-content-rid-13884233_1/courses/J1920-CSC8502/Tutorial%2012%20-%20Tessellation%20Shader%20Focus.pdf
 	camera = new Camera();
-	heightMap = new HeightMap(TEXTUREDIR"terrain.raw");
+	heightMap = new HeightMap(TEXTUREDIR"/heightmaps/volcano.raw");
 
 	quad = Mesh::GenerateQuad();
 	floor = Mesh::GenerateQuad();
@@ -11,11 +12,11 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 	sun = new OBJMesh();
 	sun->LoadOBJMesh(MESHDIR"sphere.obj");
 
-	camera->SetPosition(Vector3(RAW_WIDTH * HEIGHTMAP_X / 2.0f, 2000, RAW_HEIGHT * HEIGHTMAP_X));
+	camera->SetPosition(Vector3(20.0f, 2000, 5000.0f));
 
 	basicFont = new Font(SOIL_load_OGL_texture(TEXTUREDIR"tahoma.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_COMPRESS_TO_DXT), 16, 16);
 
-	light = new Light(Vector3(-450.0f,2000.0f,2800.0f),Vector4(.9,.9,1,.4),100000.0f);
+	light = new Light(Vector3(4000.0f,4000.0f,.0f),Vector4(.9,.9,1,.2),1000000.0f);
 	
 	bobData = new MD5FileData(MESHDIR"bob_lamp_update_export.md5mesh");
 	bobNode = new MD5Node(*bobData);
@@ -41,7 +42,9 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 
 	lightShader = new Shader(SHADERDIR"PerPixelVertex.glsl", SHADERDIR"PerPixelFragment.glsl");
 
-	if (!reflectShader->LinkProgram() || !skyboxShader->LinkProgram() || !lightShader->LinkProgram() || !sceneShader->LinkProgram() || !shadowShader->LinkProgram() ||!textShader->LinkProgram()) {
+	heightmapshader = new Shader(SHADERDIR"heightmapVertex.glsl", SHADERDIR"heightmapFragment.glsl");
+
+	if (!heightmapshader->LinkProgram() || !reflectShader->LinkProgram() || !skyboxShader->LinkProgram() || !lightShader->LinkProgram() || !sceneShader->LinkProgram() || !shadowShader->LinkProgram() ||!textShader->LinkProgram()) {
 		return;
 	}
 
@@ -75,19 +78,12 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 	heightMap->SetBumpMap(SOIL_load_OGL_texture(TEXTUREDIR"Barren RedsDOT3.JPG", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
 	cubeMap = SOIL_load_OGL_cubemap(
-		//TEXTUREDIR"rusted_west.jpg",
-		//TEXTUREDIR"rusted_east.jpg",
-		//TEXTUREDIR"rusted_up.jpg",
-		//TEXTUREDIR"rusted_down.jpg",
-		//TEXTUREDIR"rusted_south.jpg",
-		//TEXTUREDIR"rusted_north.jpg",
-
-		TEXTUREDIR"goldrush_ft.tga",
-		TEXTUREDIR"goldrush_bk.tga",
-		TEXTUREDIR"goldrush_up.tga",
-		TEXTUREDIR"goldrush_dn.tga",
-		TEXTUREDIR"goldrush_rt.tga",
-		TEXTUREDIR"goldrush_lf.tga",
+		TEXTUREDIR"skymaps/bluecloud_ft.jpg",
+		TEXTUREDIR"skymaps/bluecloud_bk.jpg",
+		TEXTUREDIR"skymaps/bluecloud_up.jpg",
+		TEXTUREDIR"skymaps/bluecloud_dn.jpg",
+		TEXTUREDIR"skymaps/bluecloud_rt.jpg",
+		TEXTUREDIR"skymaps/bluecloud_lf.jpg",
 		SOIL_LOAD_RGB,
 		SOIL_CREATE_NEW_ID, 0
 	);
@@ -125,6 +121,8 @@ Renderer::~Renderer(void) {
 	delete light;
 	delete hellData;
 	delete hellNode;
+	delete heightmapshader;
+	delete textShader;
 
 	delete sceneShader;
 	delete shadowShader;
@@ -201,17 +199,30 @@ void Renderer::DrawSkybox() {
 	glDepthMask(GL_TRUE);
 	glEnable(GL_CULL_FACE);
 }
+
+float time = 0.0f;
 void Renderer::DrawHeightMap() {
-	SetCurrentShader(lightShader);
+	SetCurrentShader(heightmapshader);
 	SetShaderLight(*light);
 
+	if (time < 1.0f) {
+		time += 0.01f;
+	}
+	
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"), 1, (float*)& camera->GetPosition());
 
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "diffuseTex"), 0);
 
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "bumpTex"), 1);
 
-	modelMatrix.ToIdentity();
+	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "time"), time);
+
+	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "shadowTex"), 2);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, shadowTex);
+
+	modelMatrix = Matrix4::Translation(Vector3(-4000, 1, -4000));
 	textureMatrix.ToIdentity();
 
 	UpdateShaderMatrices();
@@ -233,13 +244,7 @@ void Renderer::DrawWater() {
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMap);
 
-	float heightX = (RAW_WIDTH * HEIGHTMAP_X / 2.0f);
-
-	float heightY = 256 * HEIGHTMAP_Y / 3.0f ;
-
-	float heightZ = (RAW_HEIGHT * HEIGHTMAP_Z / 2.0f);
-
-	modelMatrix = Matrix4::Translation(Vector3(1,-10,1)) *
+	modelMatrix = Matrix4::Translation(Vector3(1,10,1)) *
 					Matrix4::Scale(Vector3(1000000, 1, 1000000)) *
 					Matrix4::Rotation(90, Vector3(1.0f, 0.0f, 0.0f));
 
@@ -265,6 +270,7 @@ void Renderer::DrawShadowScene() {
 	textureMatrix = biasMatrix * (projMatrix * viewMatrix);
 
 	UpdateShaderMatrices();
+
 	DrawFloor();
 	DrawMesh();
 
@@ -294,7 +300,6 @@ void Renderer::DrawCombinedScene() {
 	DrawMesh();
 
 	glUseProgram(0);
-	//glUseProgram(textShader->GetProgram());
 
 	SetCurrentShader(textShader);
 	glDisable(GL_DEPTH_TEST);
@@ -304,7 +309,7 @@ void Renderer::DrawCombinedScene() {
 	glEnable(GL_DEPTH_TEST);
 }
 void Renderer::DrawMesh() {
-	modelMatrix = (hellNode->GetWorldTransform() * Matrix4::Scale(hellNode->GetModelScale()));
+	modelMatrix = Matrix4::Translation(Vector3(-500,1265,-850))* (hellNode->GetWorldTransform() * Matrix4::Scale(hellNode->GetModelScale()));
 
 	Matrix4 tempMatrix = textureMatrix * modelMatrix;
 

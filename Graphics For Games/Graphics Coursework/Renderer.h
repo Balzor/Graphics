@@ -56,6 +56,7 @@ protected:
 	Shader* reflectShader;
 	Shader* skyboxShader;
 	Shader* textShader;
+	Shader* heightmapshader;
 
 	HeightMap* heightMap;
 	Mesh* quad;
