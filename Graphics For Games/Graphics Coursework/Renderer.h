@@ -8,6 +8,8 @@
 #include <sstream>
 
 #define SHADOWSIZE 2048
+#define LIGHTNUM 8
+
 
 class Renderer : public OGLRenderer{
 public:
@@ -31,10 +33,12 @@ protected:
 	void DrawSkybox();
 	float waterRotate;
 
-	void DrawIsland();
+	void DrawHouses();
+	void DrawHumans();
+	void DrawTrees();
 	//using shadows
 	void DrawSun();
-	void DrawMesh();
+	void DrawKaiju();
 	void DrawFloor();
 	void DrawShadowScene();
 	void DrawCombinedScene();
@@ -64,6 +68,8 @@ protected:
 
 	//always here
 	Light* light;
+	Light* moonlight;
+
 	Camera* camera;
 
 	GLuint cubeMap;
@@ -71,5 +77,7 @@ protected:
 	Font* basicFont;
 
 	OBJMesh* sun;
-	OBJMesh* sea;
+	OBJMesh* moon;
+	OBJMesh* house1;
+	OBJMesh* tree1;
 };

@@ -3,6 +3,7 @@ uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 projMatrix;
 uniform mat4 textureMatrix;
+uniform mat4 shadowMatrix;
 uniform float time;
 
 in vec3 position;
@@ -29,7 +30,7 @@ void main ( void ) {
 
     OUT.normal = normalize ( normalMatrix * normalize ( normal ));
 
-    OUT . shadowProj = ( textureMatrix * vec4 ( position +( normal *1.5) ,1));
+    OUT . shadowProj = ( shadowMatrix * vec4 ( position +( normal *50.5) ,1));
 
     temp.y*=time;
 

@@ -235,6 +235,7 @@ void OGLRenderer::UpdateShaderMatrices()	{
 		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "viewMatrix") ,	1,false, (float*)&viewMatrix);
 		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "projMatrix") ,	1,false, (float*)&projMatrix);
 		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "textureMatrix")  ,1,false, (float*)&textureMatrix);
+		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "shadowMatrix"), 1, false, (float*)& shadowMatrix);
 	}
 }
 
@@ -264,6 +265,10 @@ void OGLRenderer::DebugCallback(GLuint source, GLuint type,GLuint id, GLuint sev
 		string sourceName;
 		string typeName;
 		string severityName;
+
+		if (type == GL_DEBUG_TYPE_OTHER_ARB) {
+			return;
+		}
 
 		switch(source) {
 			case GL_DEBUG_SOURCE_API_ARB			: sourceName = "Source(OpenGL)"			;break;

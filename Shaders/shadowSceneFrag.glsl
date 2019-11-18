@@ -26,6 +26,9 @@
  vec3 normal = normalize ( TBN *
  ( texture2D ( bumpTex , IN . texCoord ). rgb * 2.0 - 1.0));
 
+
+  //vec2 test = IN.texCoord;
+  //test.y = 1.0f - test.y;
  vec4 diffuse = texture2D ( diffuseTex , IN . texCoord );
 
  vec3 incident = normalize ( lightPos - IN . worldPos );
@@ -48,4 +51,5 @@
  colour += ( lightColour . rgb * sFactor ) * 0.33;
  fragColour = vec4 ( colour * atten * lambert , diffuse . a );
  fragColour . rgb += ( diffuse . rgb * lightColour . rgb ) * 0.1;
+ //fragColour . rgb =diffuse.rgb;
  }

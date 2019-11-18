@@ -30,7 +30,9 @@ float atten = 1.0 - clamp ( dist / lightRadius , 0.0 , 1.0);
 vec3 viewDir = normalize ( cameraPos - IN . worldPos );
 vec3 halfDir = normalize ( incident + viewDir );
 
+
 float rFactor = max (0.0 , dot ( halfDir , IN . normal ));
+
 float sFactor = pow ( rFactor , 50.0 );
 
  float shadow = 1.0; // New !
@@ -41,7 +43,24 @@ float sFactor = pow ( rFactor , 50.0 );
 
 vec3 colour = ( diffuse . rgb * lightColour . rgb );
 colour += ( lightColour . rgb * sFactor ) * 0.33;
-fragColour = vec4 ( colour * atten * lambert , diffuse . a );
-fragColour . rgb += ( diffuse . rgb * lightColour . rgb ) * 0.1;
+
+
+ if(IN.worldPos.y<20){
+
+ // fragColour=vec4 (1,1,1,1);
+
+  fragColour = vec4 ( 1,1,1,0);
+
+  //fragColour . rgb += ( diffuse . rgb * lightColour . rgb ) * 0.1;
+ }else if(IN.worldPos.y<100){
+
+  fragColour = vec4 ( 0.59,0.29,0.00,1);
+  fragColour . rgb += ( diffuse . rgb * lightColour . rgb* atten * lambert ) * 0.1;
+
+ }else{
+  fragColour = vec4 ( colour * atten * lambert , diffuse . a );
+
+  fragColour . rgb += ( diffuse . rgb * lightColour . rgb ) * 0.1;
+ }
 
 }
