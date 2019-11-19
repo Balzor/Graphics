@@ -13,7 +13,7 @@ Shader::Shader(string vFile, string fFile, string gFile) {
 	}
 	glAttachShader(program, objects[SHADER_VERTEX]);
 	glAttachShader(program, objects[SHADER_FRAGMENT]);
-	SetDefaultAttributes();}Shader ::~Shader(void) {
+	SetDefaultAttributes();}Shader ::~Shader(void) {
 	for (int i = 0; i < 3; ++i) {
 		glDetachShader(program, objects[i]);
 		glDeleteShader(objects[i]);

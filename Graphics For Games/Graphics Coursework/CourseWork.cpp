@@ -2,6 +2,7 @@
 #include "../..//GLFW/include/GLFW/glfw3.h"
 #include "Renderer.h"
 
+
 #pragma comment(lib, "nclgl.lib")
 
 int main() {
@@ -34,4 +35,6 @@ int main() {
 		renderer.RenderScene();
 	}
 	return 0;
+
+	
 }

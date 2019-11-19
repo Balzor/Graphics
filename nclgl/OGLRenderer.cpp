@@ -252,10 +252,12 @@ void OGLRenderer::SetTextureRepeating( GLuint target, bool repeating )	{
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void OGLRenderer::SetShaderLight(const Light &l) {
-	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "lightPos")   ,1,(float*)&l.GetPosition());
-	glUniform4fv(glGetUniformLocation(currentShader->GetProgram(), "lightColour"),1,(float*)&l.GetColour());
-	glUniform1f(glGetUniformLocation(currentShader->GetProgram() , "lightRadius"),l.GetRadius());
+void OGLRenderer::SetShaderLight(const vector<Light>& l) {
+	for (unsigned int i = 0; i < l.size(); i++) {
+		glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), ("lightPos["+ std::to_string(i) +"]").c_str()), 1, (float*)& l[i].GetPosition());
+		glUniform4fv(glGetUniformLocation(currentShader->GetProgram(), ("lightColour[" + std::to_string(i) + "]").c_str()), 1, (float*)& l[i].GetColour());
+		glUniform1f(glGetUniformLocation(currentShader->GetProgram(), ("lightRadius[" + std::to_string(i) + "]").c_str()), l[i].GetRadius());
+	}
 }
 
 #ifdef OPENGL_DEBUGGING

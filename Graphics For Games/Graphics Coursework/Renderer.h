@@ -36,6 +36,9 @@ protected:
 	void DrawHouses();
 	void DrawHumans();
 	void DrawTrees();
+	void DrawLava();
+	void DrawMoon();
+	void DrawCampFire();
 	//using shadows
 	void DrawSun();
 	void DrawKaiju();
@@ -64,15 +67,22 @@ protected:
 
 	HeightMap* heightMap;
 	Mesh* quad;
+	Mesh* lava;
 	
 
 	//always here
 	Light* light;
 	Light* moonlight;
+	Light* lavaLight;
+	Light* emptyLight;
+	Light* sunLight;
+	Light* campfireLight;
 
 	Camera* camera;
 
 	GLuint cubeMap;
+	GLuint sandTex;
+	GLuint rockTex;
 
 	Font* basicFont;
 
@@ -80,4 +90,5 @@ protected:
 	OBJMesh* moon;
 	OBJMesh* house1;
 	OBJMesh* tree1;
+	OBJMesh* campfire;
 };

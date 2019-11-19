@@ -4,10 +4,11 @@
  uniform sampler2D bumpTex ;
  uniform sampler2DShadow shadowTex ; // NEW !
 
- uniform vec4 lightColour ;
- uniform vec3 lightPos ;
  uniform vec3 cameraPos ;
- uniform float lightRadius ;
+
+ uniform vec4 lightColour[2] ;
+ uniform vec3 lightPos[2] ;
+ uniform float lightRadius[2] ;
 
  in Vertex {
  vec3 colour ;
@@ -31,25 +32,29 @@
   //test.y = 1.0f - test.y;
  vec4 diffuse = texture2D ( diffuseTex , IN . texCoord );
 
- vec3 incident = normalize ( lightPos - IN . worldPos );
- float lambert = max (0.0 , dot ( incident , normal )); // Different !
- float dist = length ( lightPos - IN . worldPos );
- float atten = 1.0 - clamp ( dist / lightRadius , 0.0 , 1.0);
- vec3 viewDir = normalize ( cameraPos - IN . worldPos );
- vec3 halfDir = normalize ( incident + viewDir );
 
- float rFactor = max (0.0 , dot ( halfDir , normal )); // Different !
- float sFactor = pow ( rFactor , 33.0 );
+  for(int i =0; i<2;i++){
+   vec3 incident = normalize ( lightPos[i] - IN . worldPos );
+   float lambert = max (0.0 , dot ( incident , normal )); // Different !
+   float dist = length ( lightPos[i] - IN . worldPos );
+   float atten = 1.0 - clamp ( dist / lightRadius[i] , 0.0 , 1.0);
+   vec3 viewDir = normalize ( cameraPos - IN . worldPos );
+   vec3 halfDir = normalize ( incident + viewDir );
 
- float shadow = 1.0; // New !
- if( IN . shadowProj . w > 0.0) { // New !
- shadow = textureProj ( shadowTex , IN . shadowProj );
- }
- lambert *= shadow ; // New !
+   float rFactor = max (0.0 , dot ( halfDir , normal )); // Different !
+   float sFactor = pow ( rFactor , 33.0 );
 
- vec3 colour = ( diffuse . rgb * lightColour . rgb );
- colour += ( lightColour . rgb * sFactor ) * 0.33;
- fragColour = vec4 ( colour * atten * lambert , diffuse . a );
- fragColour . rgb += ( diffuse . rgb * lightColour . rgb ) * 0.1;
+   float shadow = 1.0; // New !
+   if( IN . shadowProj . w > 0.0) { // New !
+    shadow = textureProj ( shadowTex , IN . shadowProj );
+   }
+   lambert *= shadow ; // New !
+
+   vec3 colour = ( diffuse . rgb * lightColour[i] . rgb );
+   colour += ( lightColour[i] . rgb * sFactor ) * 0.33;
+   fragColour += vec4 ( colour * atten * lambert , diffuse . a );
+   fragColour . rgb += ( diffuse . rgb * lightColour[i] . rgb ) * 0.1;
+  }
+
  //fragColour . rgb =diffuse.rgb;
  }
