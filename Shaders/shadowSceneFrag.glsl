@@ -6,9 +6,9 @@
 
  uniform vec3 cameraPos ;
 
- uniform vec4 lightColour[2] ;
- uniform vec3 lightPos[2] ;
- uniform float lightRadius[2] ;
+ uniform vec4 lightColour[4] ;
+ uniform vec3 lightPos[4] ;
+ uniform float lightRadius[4] ;
 
  in Vertex {
  vec3 colour ;
@@ -33,7 +33,7 @@
  vec4 diffuse = texture2D ( diffuseTex , IN . texCoord );
 
 
-  for(int i =0; i<2;i++){
+  for(int i =0; i<4;i++){
    vec3 incident = normalize ( lightPos[i] - IN . worldPos );
    float lambert = max (0.0 , dot ( incident , normal )); // Different !
    float dist = length ( lightPos[i] - IN . worldPos );
@@ -55,6 +55,7 @@
    fragColour += vec4 ( colour * atten * lambert , diffuse . a );
    fragColour . rgb += ( diffuse . rgb * lightColour[i] . rgb ) * 0.1;
   }
+  //FragColor = texture(diffuseTex, IN.texCoord);
 
  //fragColour . rgb =diffuse.rgb;
  }

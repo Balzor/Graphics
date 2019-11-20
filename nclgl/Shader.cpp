@@ -13,7 +13,9 @@ Shader::Shader(string vFile, string fFile, string gFile) {
 	}
 	glAttachShader(program, objects[SHADER_VERTEX]);
 	glAttachShader(program, objects[SHADER_FRAGMENT]);
-	SetDefaultAttributes();}Shader ::~Shader(void) {
+	SetDefaultAttributes();
+}
+Shader ::~Shader(void) {
 	for (int i = 0; i < 3; ++i) {
 		glDetachShader(program, objects[i]);
 		glDeleteShader(objects[i]);
@@ -50,7 +52,9 @@ GLuint Shader::GenerateShader(string from, GLenum type) {
 	cout << " Compiling success !" << endl << endl;
 	loadFailed = false;
 	return shader;
-	} bool Shader::LoadShaderFile(string from, string & into) {
+	
+}
+ bool Shader::LoadShaderFile(string from, string & into) {
 	 ifstream file;
 	 string temp;
 	
@@ -68,7 +72,9 @@ GLuint Shader::GenerateShader(string from, GLenum type) {
 	file.close();
 	cout << into << endl << endl;
 	cout << " Loaded shader text !" << endl << endl;
-	return true; } void Shader::SetDefaultAttributes() {
+	return true;
+ }
+ void Shader::SetDefaultAttributes() {
 	 glBindAttribLocation(program, VERTEX_BUFFER, "position");
 	 glBindAttribLocation(program, COLOUR_BUFFER, "colour");
 	 glBindAttribLocation(program, NORMAL_BUFFER, "normal");

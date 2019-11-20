@@ -1,3 +1,5 @@
+#pragma once
+
 #include "..//..//nclgl/Camera.h"
 #include "..//..//nclgl/OGLRenderer.h"
 #include "HeightMap.h"
@@ -8,8 +10,7 @@
 #include <sstream>
 
 #define SHADOWSIZE 2048
-#define LIGHTNUM 8
-
+# define POST_PASSES 10
 
 class Renderer : public OGLRenderer{
 public:
@@ -22,8 +23,6 @@ public:
 	void DrawTexts(const std::string& text, const Vector3& position, const float size = 10.0f, const bool perspective = false);
 
 	void SetFps(float s) { fps = s; }
-
-
 protected:
 	float fps;
 	//show text on screen
@@ -46,6 +45,7 @@ protected:
 	void DrawShadowScene();
 	void DrawCombinedScene();
 
+
 	Shader* sceneShader;
 	Shader* shadowShader;
 
@@ -64,6 +64,7 @@ protected:
 	Shader* skyboxShader;
 	Shader* textShader;
 	Shader* heightmapshader;
+	Shader* skeletonShader;
 
 	HeightMap* heightMap;
 	Mesh* quad;
@@ -81,6 +82,8 @@ protected:
 	Camera* camera;
 
 	GLuint cubeMap;
+	GLuint cubeMap2;
+
 	GLuint sandTex;
 	GLuint rockTex;
 

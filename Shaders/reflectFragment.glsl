@@ -3,9 +3,9 @@
  uniform sampler2D diffuseTex ;
  uniform samplerCube cubeTex ;
 
- uniform vec4 lightColour[2] ;
- uniform vec3 lightPos[2] ;
- uniform float lightRadius[2] ;
+ uniform vec4 lightColour[4] ;
+ uniform vec3 lightPos[4] ;
+ uniform float lightRadius[4] ;
 
  uniform vec3 cameraPos ;
 
@@ -18,7 +18,7 @@
 
  out vec4 fragColour ;
  void main ( void ) {
-  for(int i =0; i< 2; i++){
+  for(int i =0; i< 4; i++){
    vec4 diffuse = texture ( diffuseTex , IN . texCoord ) * IN . colour ;
    vec3 incident = normalize ( IN . worldPos - cameraPos );
    float dist = length ( lightPos[i] - IN . worldPos );

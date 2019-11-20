@@ -15,7 +15,7 @@ public:
 	virtual void UpdateScene(float msec);
 
 protected:
-	void PresentsScene();
+	void PresentScene();
 	void DrawPostProcess();
 	void DrawScene();
 

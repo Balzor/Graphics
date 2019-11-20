@@ -22,9 +22,13 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 		return;
 	}
 	campfire = new OBJMesh();
-	campfire->LoadOBJMesh(MESHDIR"sphere.obj");
-	campfire->SetTexture(SOIL_load_OGL_texture(TEXTUREDIR"water.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
-	campfireLight = new Light(Vector3(-1100, 1265, -850), Vector4(0.81, 0.06, 0.13, 1), 100.0f);
+	campfire->LoadOBJMesh(MESHDIR"campfire.obj");
+	campfire->SetTexture(SOIL_load_OGL_texture(TEXTUREDIR"campfire/DefaultMaterial_albedo.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y));
+	campfire->SetBumpMap(SOIL_load_OGL_texture(TEXTUREDIR"campfire/DefaultMaterial_normal.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y));
+	campfireLight = new Light(Vector3(-1100, 1265, -850), Vector4(0.81, 0.06, 0.13, 1), 300.0f);
+	if (!campfire->GetTexture() || !campfire->GetBumpMap()) {
+		return;
+	}
 
 	floor = Mesh::GenerateQuad();
 	floor->SetTexture(SOIL_load_OGL_texture(TEXTUREDIR"Asphalt road texture-1.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
@@ -39,14 +43,17 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 	moon->LoadOBJMesh(MESHDIR"othersphere.obj");
 	moon->SetTexture(SOIL_load_OGL_texture(TEXTUREDIR"moon.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 	moon->SetBumpMap(SOIL_load_OGL_texture(TEXTUREDIR"moon_N.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
-	moonlight = new Light(Vector3(-4000.0f, 4000.0f, .0f), Vector4(1, 1, 1, 1), 50000.0f);
+	moonlight = new Light(Vector3(-2000.0f, 4000.0f, .0f), Vector4(1, 1, 1, 1), 50000.0f);
 
+	//emptylight
 	emptyLight = new Light(Vector3(-4000.0f, 4000.0f, .0f), Vector4(1, 1, 1, 1), 0.0f);
-	
+	//rmptylight
+
 	house1 = new OBJMesh();
 	house1->LoadOBJMesh(MESHDIR"WoodenCabinObj.obj");
 	house1->SetTexture(SOIL_load_OGL_texture(TEXTUREDIR"houses/WoodCabinDif.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y));
 	house1->SetBumpMap(SOIL_load_OGL_texture(TEXTUREDIR"houses/WoodCabinNM.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y));
+	house1->SetPosition(Vector3(-1100, 0, -850));
 
 	tree1 = new OBJMesh();
 	tree1->LoadOBJMesh(MESHDIR"plainTree1.obj");
@@ -63,6 +70,8 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 	hellNode = new MD5Node(*hellData);
 
 	hellData->AddAnim(MESHDIR"idle2.md5anim");
+	hellData->AddAnim(MESHDIR"walk7.md5anim");
+	hellData->AddAnim(MESHDIR"attack2.md5anim");
 	hellNode->PlayAnim(MESHDIR"idle2.md5anim");
 
 	textShader = new Shader(SHADERDIR"TexturedVertex.glsl", SHADERDIR"TexturedFragment.glsl");
@@ -78,6 +87,11 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 	lightShader = new Shader(SHADERDIR"PerPixelVertex.glsl", SHADERDIR"PerPixelFragment.glsl");
 
 	heightmapshader = new Shader(SHADERDIR"heightmapVertex.glsl", SHADERDIR"heightmapFragment.glsl");
+
+	skeletonShader = new Shader(SHADERDIR"skeletonVertexSimple.glsl", SHADERDIR"texturedfragment.glsl");
+	//if (!skeletonShader->LinkProgram()) {
+	//	return;
+	//}
 
 	if (!heightmapshader->LinkProgram() || !reflectShader->LinkProgram() || !skyboxShader->LinkProgram() || !lightShader->LinkProgram() || !sceneShader->LinkProgram() || !shadowShader->LinkProgram() ||!textShader->LinkProgram()) {
 		return;
@@ -99,9 +113,17 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 
 	basicFont = new Font(SOIL_load_OGL_texture(TEXTUREDIR"tahoma.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_COMPRESS_TO_DXT), 16, 16);
 
-	
-
 	cubeMap = SOIL_load_OGL_cubemap(
+		TEXTUREDIR"skymaps/bluecloud_ft.jpg",
+		TEXTUREDIR"skymaps/bluecloud_bk.jpg",
+		TEXTUREDIR"skymaps/bluecloud_up.jpg",
+		TEXTUREDIR"skymaps/bluecloud_dn.jpg",
+		TEXTUREDIR"skymaps/bluecloud_rt.jpg",
+		TEXTUREDIR"skymaps/bluecloud_lf.jpg",
+		SOIL_LOAD_RGB,
+		SOIL_CREATE_NEW_ID, 0
+	);
+	cubeMap2 = SOIL_load_OGL_cubemap(
 		TEXTUREDIR"skymaps/bluecloud_ft.jpg",
 		TEXTUREDIR"skymaps/bluecloud_bk.jpg",
 		TEXTUREDIR"skymaps/bluecloud_up.jpg",
@@ -145,6 +167,7 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 	glActiveTexture(GL_TEXTURE5);
 	glBindTexture(GL_TEXTURE_2D, rockTex);
 
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
@@ -180,6 +203,12 @@ Renderer::~Renderer(void) {
 	currentShader = NULL;
 }
 int counter = 0;
+int counterMove = 0;
+bool played=true;
+bool playedAttack=true;
+bool rotateAnim = true;
+bool death=true;
+int counterPosition = 0;
 void Renderer::UpdateScene(float msec) {
 	projMatrix = Matrix4::Perspective(10.0f, 150000.0f, (float)width / (float)height, 45.0f);
 	camera->UpdateCamera(msec);
@@ -193,7 +222,7 @@ void Renderer::UpdateScene(float msec) {
 	//end of light
 	//moon circle
 	 Vector3 moonPos = moonlight->GetPosition();
-	 Matrix4 moonRot = Matrix4::Rotation(msec / 100, Vector3(0, 1, 0));
+	 Matrix4 moonRot = Matrix4::Rotation(msec / 50, Vector3(0, 0, 1));
 	 moonPos = moonRot * moonPos;
 	 moonlight->SetPosition(moonPos);
 	//end moon circle
@@ -208,7 +237,76 @@ void Renderer::UpdateScene(float msec) {
 		hellNode->SetModelScale(node);
 		counter++;
 	}
+	//demon start walking towards the village
+	if (death == true) {
+		if (counterMove > 1265 / 5 - 10) {
+			if (counterPosition < 300) {
+				Matrix4 positiondemon = hellNode->GetWorldTransform();
+				Matrix4 movedemon = Matrix4::Translation(Vector3(-2, 0, 0));
+				positiondemon = movedemon * positiondemon;
+				hellNode->SetTransform(positiondemon);
+				if (played) {
+					//hellNode->PlayAnim(MESHDIR"walk7.md5anim");
+					played = false;
+				}
+			}
+			//demon attacks the house
+			if (counterPosition >= 250) {
+				if (playedAttack == true) {
+					hellNode->PlayAnim(MESHDIR"attack2.md5anim");
+					playedAttack = false;
+				}
+				Vector3 position = house1->GetPosition();
+				Matrix4 move = Matrix4::Translation(Vector3(0, -1, 0));
+				position = move * position;
+				house1->SetPosition(position);
+			}
+			//demon turns towards the volcano
+			if (counterPosition > 300) {
+				if (rotateAnim == true) {
+					Matrix4 rotationdemon = hellNode->GetWorldTransform();
+					Matrix4 rotdemon = Matrix4::Rotation(180, Vector3(1, 0, 0));
+					rotationdemon = rotdemon * rotationdemon;
+					hellNode->SetTransform(rotationdemon);
+					hellNode->PlayAnim(MESHDIR"idle2.md5anim");
+					rotateAnim = false;
+				}
+				//demon walks to the volcano
+				Matrix4 positiondemon = hellNode->GetWorldTransform();
+				Matrix4 movedemon = Matrix4::Translation(Vector3(2, 0, 0));
+				positiondemon = movedemon * positiondemon;
+				hellNode->SetTransform(positiondemon);
+			}
+			if (counterPosition > 700) {
+				Matrix4 positiondemon = hellNode->GetWorldTransform();
+				Matrix4 movedemon = Matrix4::Translation(Vector3(1, -2, 1));
+				positiondemon = movedemon * positiondemon;
+				hellNode->SetTransform(positiondemon);
+			}
+			
+			counterPosition++;
+		}
+	}
+	
 	//end of scale model
+	//move houses
+	if (counterMove < 1265/5) {
+		//Vector3(-1100, 1265, -850)
+		Vector3 position = house1->GetPosition();
+		Matrix4 positionbob = bobNode->GetWorldTransform();
+
+		Matrix4 move = Matrix4::Translation(Vector3(0, 5, 0));
+		Matrix4 movebob = Matrix4::Translation(Vector3(0, 5, 0));
+
+		position = move * position;
+		positionbob = movebob * positionbob;
+
+		house1->SetPosition(position);
+		bobNode->SetTransform(positionbob);
+
+		counterMove++;
+	}
+	//end of move houses
 
 	hellNode->Update(msec);
 	bobNode->Update(msec);
@@ -257,12 +355,13 @@ void Renderer::DrawShadowScene() {
 	DrawWater();
 	SetCurrentShader(shadowShader);
 	DrawMoon();
-
 	DrawFloor();
 	DrawKaiju();
 	DrawHumans();
 	DrawHouses();
 	DrawTrees();
+	DrawCampFire();
+
 
 	UpdateShaderMatrices();
 	glUseProgram(0);
@@ -280,7 +379,7 @@ void Renderer::DrawCombinedScene() {
 
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"), 1, (float*)& camera->GetPosition());
 
-	SetShaderLight({ *light, *emptyLight });
+	SetShaderLight({ *light, *emptyLight,*emptyLight,*emptyLight });
 
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, shadowTex);
@@ -302,11 +401,12 @@ void Renderer::DrawCombinedScene() {
 	DrawLava();
 	DrawWater();
 	SetCurrentShader(sceneShader);
+	DrawKaiju();
+	DrawHumans();
+	SetCurrentShader(sceneShader);
 	DrawFloor();
 	DrawSun();
 	DrawMoon();
-	DrawKaiju();
-	DrawHumans();
 	DrawHouses();
 	DrawTrees();
 	DrawCampFire();
@@ -351,7 +451,7 @@ void Renderer::DrawFloor() {
 float time = 0.0f;
 void Renderer::DrawHeightMap() {
 	SetCurrentShader(heightmapshader);
-	SetShaderLight({ *light, *lavaLight });
+	SetShaderLight({ *light, *lavaLight, *campfireLight,*emptyLight });
 
 	if (time < 1.0f) {
 		time += 0.01f;
@@ -384,7 +484,7 @@ void Renderer::DrawHeightMap() {
 }
 void Renderer::DrawLava() {
 	SetCurrentShader(reflectShader);
-	SetShaderLight({ *emptyLight, *moonlight });
+	SetShaderLight({ *emptyLight,*emptyLight, *emptyLight, *moonlight });
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"), 1, (float*)& camera->GetPosition());
 
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "diffuseTex"), 0);
@@ -411,7 +511,7 @@ void Renderer::DrawLava() {
 void Renderer::DrawWater() {
 	glDepthMask(GL_FALSE);
 	SetCurrentShader(reflectShader);
-	SetShaderLight({ *light, *emptyLight });
+	SetShaderLight({ *light, *emptyLight,*emptyLight,*emptyLight });
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"),1, (float*)& camera->GetPosition());
 
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "diffuseTex"), 0);
@@ -437,6 +537,8 @@ void Renderer::DrawWater() {
 
  }
 void Renderer::DrawKaiju() {
+	//SetCurrentShader(skeletonShader);
+	SetShaderLight({ *light, *campfireLight,*emptyLight,*emptyLight });
 	UpdateShaderMatrices();
 	modelMatrix = Matrix4::Translation(Vector3(-500,1265,-850))* (hellNode->GetWorldTransform() * Matrix4::Scale(hellNode->GetModelScale()));
 
@@ -452,31 +554,47 @@ void Renderer::DrawKaiju() {
 int humans = 10;
 float angle = 0.0f;
 void Renderer::DrawHumans() {
-	SetCurrentShader(sceneShader);
-	SetShaderLight({ *light, *emptyLight });
+	//SetCurrentShader(skeletonShader);
+	SetShaderLight({ *light, *campfireLight,*emptyLight,*emptyLight });
 	for (int i = 0; i < humans; i++) {
 		angle = 360 / humans;
-		modelMatrix = Matrix4::Translation(Vector3(-1100, 1265, -850)) * Matrix4::Rotation(angle * i, Vector3(0, 1, 0)) * Matrix4::Translation(Vector3(100, 0, 0)) * Matrix4::Rotation(90, Vector3(0, 1, 0)) * (bobNode->GetWorldTransform() * Matrix4::Scale(Vector3(3, 3, 3)));
+		modelMatrix = Matrix4::Translation(Vector3(-1100, 0, -850)) * Matrix4::Rotation(angle * i, Vector3(0, 1, 0)) * Matrix4::Translation(Vector3(100, 0, 0)) * Matrix4::Rotation(90, Vector3(0, 1, 0)) * (bobNode->GetWorldTransform() * Matrix4::Scale(Vector3(3, 3, 3)));
 
 		//modelMatrix = Matrix4::Translation(Vector3(-1200, 1265, -850)) * (bobNode->GetWorldTransform() * Matrix4::Scale(Vector3(3, 3, 3)));
 
 		Matrix4 tempMatrix = shadowMatrix * modelMatrix;
+		SetCurrentShader(sceneShader);
 
 		UpdateShaderMatrices();
 
 		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "shadowMatrix"), 1, false, *&tempMatrix.values);
 
 		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "modelMatrix"), 1, false, *&modelMatrix.values);
-		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "modelMatrix"), 1, false, (float*)& modelMatrix);
+		//glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "modelMatrix"), 1, false, (float*)& modelMatrix);
 
 		bobNode->Draw(*this);
 	}
+}
+void Renderer::DrawCampFire() {
+	float temp = 2000;
+	//SetShaderLight({ *light, *campfireLight,*emptyLight,*emptyLight });
+	modelMatrix = Matrix4::Translation(Vector3(-1100, 1265, -850)) * Matrix4::Scale(Vector3(temp, temp, temp));
+	Matrix4 tempMatrix = shadowMatrix * modelMatrix;
+
+	SetCurrentShader(sceneShader);
+
+	UpdateShaderMatrices();
+
+	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "shadowMatrix"), 1, false, *&tempMatrix.values);
+	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "modelMatrix"), 1, false, *&modelMatrix.values);
+
+	campfire->Draw();
 }
 int houses = 10;
 void Renderer::DrawHouses() {
 	for (int i = 0; i < houses; i++) {
 		angle = 360 / houses;
-		modelMatrix = Matrix4::Translation(Vector3(-1100, 1265, -850)) * Matrix4::Rotation(angle*i, Vector3(0, 1, 0)) * Matrix4::Translation(Vector3(200, 0, 0)) * Matrix4::Rotation(-90, Vector3(0, 1, 0));
+		modelMatrix = Matrix4::Translation(house1->GetPosition()) * Matrix4::Rotation(angle*i, Vector3(0, 1, 0)) * Matrix4::Translation(Vector3(200, 0, 0)) * Matrix4::Rotation(-90, Vector3(0, 1, 0));
 
 		Matrix4 tempMatrix = shadowMatrix * modelMatrix;
 
@@ -485,7 +603,6 @@ void Renderer::DrawHouses() {
 		UpdateShaderMatrices();
 
 		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "shadowMatrix"), 1, false, *&tempMatrix.values);
-
 		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "modelMatrix"), 1, false, *&modelMatrix.values);
 
 		house1->Draw();
@@ -532,18 +649,5 @@ void Renderer::DrawMoon() {
 	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "modelMatrix"), 1, false, *&modelMatrix.values);
 
 	moon->Draw();
-}
-void Renderer::DrawCampFire() {
-	float temp = campfireLight->GetRadius();
-
-	modelMatrix = Matrix4::Translation(campfireLight->GetPosition()) * Matrix4::Rotation(90, Vector3(1, 1, 0)) *
-		Matrix4::Scale(Vector3(temp, temp, temp));
-	Matrix4 tempMatrix = textureMatrix * modelMatrix;
-
-	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "textureMatrix"), 1, false, *&tempMatrix.values);
-
-	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "modelMatrix"), 1, false, *&modelMatrix.values);
-
-	campfire->Draw();
 }
 

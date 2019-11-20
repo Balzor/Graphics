@@ -20,6 +20,8 @@ out Vertex	{
 	vec3 	normal;
 	vec3 	tangent;
 	vec3 	worldPos;
+	vec4    shadowProj ; // New !
+
 } OUT;
 
 void main(void)	{
@@ -54,12 +56,14 @@ void main(void)	{
 	mat3 normalMatrix = transpose(mat3(modelMatrix));
 	
 	vertPos.w = 1.0f;
-	
+
 	OUT.worldPos 	= (modelMatrix * vec4(vertPos.xyz, 1.0)).xyz;
 	OUT.texCoord 	= texCoord;
-	
+
 	OUT.normal 		= normalMatrix * normalize(oNormal);
 	OUT.tangent 	= normalMatrix * normalize(oTangent);
+
+	OUT . shadowProj = ( shadowMatrix * vec4 ( position +( normal *1.5) ,1));
 
 	gl_Position		= (projMatrix * viewMatrix * modelMatrix) * vec4(vertPos.xyz, 1.0);
 }

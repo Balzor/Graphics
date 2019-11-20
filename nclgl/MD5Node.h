@@ -90,6 +90,8 @@ public:
 		}
 	}
 
+	Vector3 GetPosition() const { return position; }
+	void SetPosition(Vector3 val) { position = val; }
 
 protected:
 	const MD5FileData&	sourceData;
@@ -98,4 +100,6 @@ protected:
 
 	float				frameTime;
 	unsigned int		currentAnimFrame;	//Current frame of animation
+
+	Vector3 position;
 };
