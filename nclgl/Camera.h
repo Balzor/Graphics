@@ -22,12 +22,17 @@ public:
 	Camera(void){
 		yaw		= 0.0f;
 		pitch	= 0.0f;
+		SetMovePosition();
+		SetMovePitch();
+
 	};
 
 	Camera(float pitch, float yaw, Vector3 position){
 		this->pitch		= pitch;
 		this->yaw		= yaw;
 		this->position	= position;
+		SetMovePosition();
+		SetMovePitch();
 	}
 
 	~Camera(void){};
@@ -53,8 +58,16 @@ public:
 	//Sets pitch, in degrees
 	void	SetPitch(float p) {pitch = p;}
 
+	void SetMovePosition();
+	void SetMovePitch();
+
 protected:
+	int i = 0;
+	float temp = 0;
 	float	yaw;
 	float	pitch;
 	Vector3 position;
+	vector<Vector3> cameraPosition;
+	vector<Vector2> cameraPitch;
+	
 };

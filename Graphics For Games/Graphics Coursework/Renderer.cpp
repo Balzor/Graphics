@@ -44,6 +44,8 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 	moon->SetTexture(SOIL_load_OGL_texture(TEXTUREDIR"moon.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 	moon->SetBumpMap(SOIL_load_OGL_texture(TEXTUREDIR"moon_N.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 	moonlight = new Light(Vector3(-2000.0f, 4000.0f, .0f), Vector4(1, 1, 1, 1), 50000.0f);
+	moonlight2 = new Light(Vector3(-2000.0f, 4000.0f, .0f), Vector4(0.31, 0.41, 0.53, 1), 50000.0f);
+	//31, 41.2, 53.3
 
 	//emptylight
 	emptyLight = new Light(Vector3(-4000.0f, 4000.0f, .0f), Vector4(1, 1, 1, 1), 0.0f);
@@ -123,18 +125,18 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 		SOIL_LOAD_RGB,
 		SOIL_CREATE_NEW_ID, 0
 	);
-	cubeMap2 = SOIL_load_OGL_cubemap(
-		TEXTUREDIR"skymaps/bluecloud_ft.jpg",
-		TEXTUREDIR"skymaps/bluecloud_bk.jpg",
-		TEXTUREDIR"skymaps/bluecloud_up.jpg",
-		TEXTUREDIR"skymaps/bluecloud_dn.jpg",
-		TEXTUREDIR"skymaps/bluecloud_rt.jpg",
-		TEXTUREDIR"skymaps/bluecloud_lf.jpg",
-		SOIL_LOAD_RGB,
-		SOIL_CREATE_NEW_ID, 0
-	);
+	//cubeMapNight = SOIL_load_OGL_cubemap(
+	///	TEXTUREDIR"skymaps/darkskies_ft.tga",
+	//	TEXTUREDIR"skymaps/darkskies_bk.tga",
+	//	TEXTUREDIR"skymaps/darkskies_up.tga",
+	//	TEXTUREDIR"skymaps/darkskies_dn.tga",
+	//	TEXTUREDIR"skymaps/darkskies_rt.tga",
+	//	TEXTUREDIR"skymaps/darkskies_lf.tga",
+	//	SOIL_LOAD_RGB,
+	//	SOIL_CREATE_NEW_ID, 0
+	//);
 
-	if ( !cubeMap || !quad->GetTexture() || !heightMap->GetTexture() ) {
+	if (!cubeMapNight || !cubeMap || !quad->GetTexture() || !heightMap->GetTexture() ) {
 		return;
 	}
 
@@ -189,6 +191,7 @@ Renderer::~Renderer(void) {
 	delete light;
 	delete lavaLight;
 	delete moonlight;
+	delete moonlight2;
 	delete hellData;
 	delete hellNode;
 	delete bobData;
@@ -209,8 +212,13 @@ bool playedAttack=true;
 bool rotateAnim = true;
 bool death=true;
 int counterPosition = 0;
+bool destroyScene = false;
+vector<Matrix4> storage;
+Matrix4 lol;
+int countFrames=0;
 void Renderer::UpdateScene(float msec) {
 	projMatrix = Matrix4::Perspective(10.0f, 150000.0f, (float)width / (float)height, 45.0f);
+
 	camera->UpdateCamera(msec);
 	viewMatrix = camera->BuildViewMatrix();
 
@@ -225,6 +233,7 @@ void Renderer::UpdateScene(float msec) {
 	 Matrix4 moonRot = Matrix4::Rotation(msec / 50, Vector3(0, 0, 1));
 	 moonPos = moonRot * moonPos;
 	 moonlight->SetPosition(moonPos);
+	 moonlight2->SetPosition(moonPos);
 	//end moon circle
 
 	waterRotate += msec / 1000.0f;
@@ -246,9 +255,23 @@ void Renderer::UpdateScene(float msec) {
 				positiondemon = movedemon * positiondemon;
 				hellNode->SetTransform(positiondemon);
 				if (played) {
-					//hellNode->PlayAnim(MESHDIR"walk7.md5anim");
+					hellNode->PlayAnim(MESHDIR"walk7.md5anim");
 					played = false;
 				}
+			//	countFrames++;
+			//	Matrix4 tempStorage=lol;
+			//	hellNode->GetJointWorldTransform("origin", lol);
+			//	cout << lol;
+
+				//storage.push_back(lol);
+				//if (countFrames == 36) {
+					//countFrames = 0;
+					//hellNode->SetTransform(lol);
+				//}
+				//if (lol.values[12] > tempStorage.values[12]) {
+					//cout << "lololol";
+				///	hellNode->SetTransform(lol);
+				//}
 			}
 			//demon attacks the house
 			if (counterPosition >= 250) {
@@ -264,11 +287,9 @@ void Renderer::UpdateScene(float msec) {
 			//demon turns towards the volcano
 			if (counterPosition > 300) {
 				if (rotateAnim == true) {
-					Matrix4 rotationdemon = hellNode->GetWorldTransform();
-					Matrix4 rotdemon = Matrix4::Rotation(180, Vector3(1, 0, 0));
-					rotationdemon = rotdemon * rotationdemon;
-					hellNode->SetTransform(rotationdemon);
-					hellNode->PlayAnim(MESHDIR"idle2.md5anim");
+					hellNode->SetModelScale(Vector3(-3, 3, -3));
+					//hellNode->PlayAnim(MESHDIR"idle2.md5anim");
+					hellNode->PlayAnim(MESHDIR"walk7.md5anim");
 					rotateAnim = false;
 				}
 				//demon walks to the volcano
@@ -287,7 +308,7 @@ void Renderer::UpdateScene(float msec) {
 			counterPosition++;
 		}
 	}
-	
+
 	//end of scale model
 	//move houses
 	if (counterMove < 1265/5) {
@@ -391,8 +412,14 @@ void Renderer::DrawCombinedScene() {
 	if (Window::GetKeyboard()->KeyDown(KEYBOARD_L)) {
 		viewMatrix = Matrix4::BuildViewMatrix(light->GetPosition(), Vector3(0, 0, 0));
 	}
+	
 	if (Window::GetKeyboard()->KeyDown(KEYBOARD_M)) {
 		viewMatrix = Matrix4::BuildViewMatrix(moonlight->GetPosition(), Vector3(0, 0, 0));
+	}
+	if (Window::GetKeyboard()->KeyDown(KEYBOARD_I)) {
+		cout<<" pitch: "  << camera->GetPitch();
+		cout<<" yaw: "  << camera->GetYaw();
+		cout<<" position: "  << camera->GetPosition();
 	}
 
 	UpdateShaderMatrices();
@@ -419,6 +446,12 @@ void Renderer::DrawCombinedScene() {
 	stringstream s;
 	s << fps;
 	DrawTexts("FPS:" + s.str(), Vector3(0, 0, 0), 17.0f);
+	DrawTexts("(U) disable autoCam", Vector3(0, 600-50, 0), 17.0f);
+	DrawTexts("(T) enable  autoCam", Vector3(0,616 - 50, 0), 17.0f);
+	DrawTexts("Hold(L) SunCam", Vector3(0,633 - 50, 0), 17.0f);
+	DrawTexts("Hold(M) MoonCam", Vector3(0,650 - 50, 0), 17.0f);
+	DrawTexts("(F) Destroy Isand", Vector3(0,667 - 50, 0), 17.0f);
+	DrawTexts("(G) Rebuild Island", Vector3(0,684 - 50, 0), 17.0f);
 	glEnable(GL_DEPTH_TEST);
 }
 
@@ -449,12 +482,46 @@ void Renderer::DrawFloor() {
 	floor->Draw();	
 }
 float time = 0.0f;
+bool start = true;
+bool destroy = false;
+bool rebuild = false;
 void Renderer::DrawHeightMap() {
 	SetCurrentShader(heightmapshader);
-	SetShaderLight({ *light, *lavaLight, *campfireLight,*emptyLight });
+	SetShaderLight({ *light, *lavaLight, *campfireLight,*moonlight2 });
 
-	if (time < 1.0f) {
-		time += 0.01f;
+	if (start) {
+		if (time < 1.0f) {
+			time += 0.01f;
+		}
+		else {
+			start = false;
+		}
+	}
+	if (Window::GetKeyboard()->KeyDown(KEYBOARD_G)) {
+		if (time < 1.0f) {
+			time += 0.01f;
+		}
+		rebuild = true;
+	}
+	if (rebuild) {
+		if (time < 1.0f) {
+			time += 0.01f;
+		}
+		else {
+			rebuild = false;
+		}
+	}
+	if (Window::GetKeyboard()->KeyDown(KEYBOARD_F)) {
+		destroy = true;
+	}
+	if (destroy) {
+		if (time > 0.0f) {
+			time -= 0.01f;
+		}
+		else {
+			destroy = false;
+		}
+		
 	}
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"), 1, (float*)& camera->GetPosition());
 
@@ -482,6 +549,7 @@ void Renderer::DrawHeightMap() {
 	heightMap->Draw();
 	//glUseProgram(0);
 }
+float timeLava = 0.0f;
 void Renderer::DrawLava() {
 	SetCurrentShader(reflectShader);
 	SetShaderLight({ *emptyLight,*emptyLight, *emptyLight, *moonlight });
@@ -491,15 +559,33 @@ void Renderer::DrawLava() {
 
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "cubeTex"), 2);
 
-	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMap);
+	//glActiveTexture(GL_TEXTURE2);
+	//glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMap);
 
-	modelMatrix = Matrix4::Translation(Vector3(1000, 500, 1)) *
-		Matrix4::Scale(Vector3(2000, 1, 2000)) *
-		Matrix4::Rotation(90, Vector3(1.0f, 0.0f, 0.0f));
-
+	if (!destroyScene) {
+		if (timeLava < 1.0f) {
+			timeLava += 0.01f;
+		}
+		else {
+			modelMatrix = Matrix4::Translation(Vector3(1000, 500, 1)) *
+				Matrix4::Scale(Vector3(2000, 1, 2000)) *
+				Matrix4::Rotation(90, Vector3(1.0f, 0.0f, 0.0f));
+		}
+	}
+	
 	textureMatrix = Matrix4::Scale(Vector3(10.0f, 10.0f, 10.0f)) *
 		Matrix4::Rotation(waterRotate / .1f, Vector3(0.0f, 0.0f, 1.0f));
+
+	if (Window::GetKeyboard()->KeyDown(KEYBOARD_F)) {
+		destroyScene = true;
+	}
+	if (Window::GetKeyboard()->KeyDown(KEYBOARD_G)) {
+		destroyScene = false;
+		timeLava = 0.0f;
+	}
+	if (destroyScene) {
+		Matrix4 moveLava = Matrix4::Translation(Vector3(1000, 100, 1));
+	}
 
 	UpdateShaderMatrices();
 
@@ -520,6 +606,16 @@ void Renderer::DrawWater() {
 
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMap);
+	if (moonlight->GetPosition().y > 0) {
+		//glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+		//glActiveTexture(GL_TEXTURE2);
+		//glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMap);
+	}
+	else {
+		//glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+		//glActiveTexture(GL_TEXTURE2);
+		//glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapNight);
+	}
 
 	modelMatrix = Matrix4::Translation(Vector3(1,150,1)) *
 					Matrix4::Scale(Vector3(1000000, 1, 1000000)) *
@@ -538,7 +634,7 @@ void Renderer::DrawWater() {
  }
 void Renderer::DrawKaiju() {
 	//SetCurrentShader(skeletonShader);
-	SetShaderLight({ *light, *campfireLight,*emptyLight,*emptyLight });
+	SetShaderLight({ *light, *campfireLight,*lavaLight,*moonlight2 });
 	UpdateShaderMatrices();
 	modelMatrix = Matrix4::Translation(Vector3(-500,1265,-850))* (hellNode->GetWorldTransform() * Matrix4::Scale(hellNode->GetModelScale()));
 
@@ -555,7 +651,7 @@ int humans = 10;
 float angle = 0.0f;
 void Renderer::DrawHumans() {
 	//SetCurrentShader(skeletonShader);
-	SetShaderLight({ *light, *campfireLight,*emptyLight,*emptyLight });
+	SetShaderLight({ *light, *campfireLight,*moonlight2,*emptyLight });
 	for (int i = 0; i < humans; i++) {
 		angle = 360 / humans;
 		modelMatrix = Matrix4::Translation(Vector3(-1100, 0, -850)) * Matrix4::Rotation(angle * i, Vector3(0, 1, 0)) * Matrix4::Translation(Vector3(100, 0, 0)) * Matrix4::Rotation(90, Vector3(0, 1, 0)) * (bobNode->GetWorldTransform() * Matrix4::Scale(Vector3(3, 3, 3)));
@@ -610,6 +706,7 @@ void Renderer::DrawHouses() {
 }
 //modelMatrix = Matrix4::Translation(Vector3(-1100, 1265, -850))
 void Renderer::DrawTrees() {
+	SetShaderLight({ *light, *campfireLight,*moonlight2,*emptyLight });
 	modelMatrix = Matrix4::Translation(Vector3(-900, 1265, -950));
 	Matrix4 tempMatrix = shadowMatrix * modelMatrix;
 

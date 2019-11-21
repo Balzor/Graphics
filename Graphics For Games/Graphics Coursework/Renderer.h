@@ -74,6 +74,7 @@ protected:
 	//always here
 	Light* light;
 	Light* moonlight;
+	Light* moonlight2;
 	Light* lavaLight;
 	Light* emptyLight;
 	Light* sunLight;
@@ -82,7 +83,7 @@ protected:
 	Camera* camera;
 
 	GLuint cubeMap;
-	GLuint cubeMap2;
+	GLuint cubeMapNight;
 
 	GLuint sandTex;
 	GLuint rockTex;
