@@ -4,6 +4,7 @@ uniform sampler2D diffuseTex;
 
 in Vertex {
 	vec2 texCoord;
+	vec2 colour;
 } IN;
 
 out vec4 FragColor;

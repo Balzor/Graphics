@@ -27,8 +27,12 @@
  vec2 ( pixelSize . x *1 ,0.0) , vec2 ( pixelSize . x *2 ,0.0) );
  }
 
- for (int i = 0; i < 5; i ++ ) {
+   for (int i = 0; i < 5; i ++ ) {
      vec4 tmp = texture2D ( diffuseTex , IN . texCoord . xy + values [ i ]);
      fragColour += tmp * weights [ i ];
      }
+
+    // fragColour = texture2D ( diffuseTex , IN . texCoord . xy );
+    // fragColour.a = 1.0f;
+     //fragColour = vec4(IN.texCoord.x, IN.texCoord.y, 0, 1);
  }

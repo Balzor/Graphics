@@ -30,7 +30,16 @@ protected:
 	void DrawHeightMap();
 	void DrawWater();
 	void DrawSkybox();
+	void MotionBlurPass();
 	float waterRotate;
+
+	//postpross
+	GLuint bufferFBO;
+	GLuint processFBO;
+	GLuint bufferDepthTex;
+	GLuint bufferColourTex[2];
+	void PresentScene();
+	void DrawPostProcess();
 
 	void DrawHouses();
 	void DrawHumans();
@@ -65,9 +74,12 @@ protected:
 	Shader* textShader;
 	Shader* heightmapshader;
 	Shader* skeletonShader;
+	Shader* gammaShader;
+	Shader* processShader;
 
 	HeightMap* heightMap;
 	Mesh* quad;
+	Mesh* quad2;
 	Mesh* lava;
 	
 
@@ -81,6 +93,7 @@ protected:
 	Light* campfireLight;
 
 	Camera* camera;
+	Camera* cameraAbove;
 
 	GLuint cubeMap;
 	GLuint cubeMapNight;

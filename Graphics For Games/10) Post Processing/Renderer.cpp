@@ -12,7 +12,18 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	 processShader = new Shader(SHADERDIR"TexturedVertex.glsl",SHADERDIR"processfrag.glsl");
 	
 	 if (!processShader -> LinkProgram()) {
-		return;	 }	 if (!sceneShader->LinkProgram()) {		 return;	 }	 if (!heightMap->GetTexture()) {		 return;	 }	 SetTextureRepeating(heightMap -> GetTexture(), true);	 // Generate our scene depth texture ...
+		return;
+	 }
+	 if (!sceneShader->LinkProgram()) {
+		 return;
+	 }
+	 if (!heightMap->GetTexture()) {
+		 return;
+	 }
+
+	 SetTextureRepeating(heightMap -> GetTexture(), true);
+
+	 // Generate our scene depth texture ...
 	  glGenTextures(1, &bufferDepthTex);
 	  glBindTexture(GL_TEXTURE_2D, bufferDepthTex);
 	  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
@@ -20,7 +31,9 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height,
-	 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);	  // And our colour texture ...
+	 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+
+	  // And our colour texture ...
 	   for (int i = 0; i < 2; ++i) {
 		 glGenTextures(1, &bufferColourTex[i]);
 		  glBindTexture(GL_TEXTURE_2D, bufferColourTex[i]);
@@ -30,16 +43,18 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 		   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
 			   GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-		  	  }	   glGenFramebuffers(1, &bufferFBO); // We ’ll render the scene into this
-	    glGenFramebuffers(1, &processFBO); // And do post processing in this
+		  
+	  }
+	   glGenFramebuffers(1, &bufferFBO); // We ’ll render the scene into this
+	   glGenFramebuffers(1, &processFBO); // And do post processing in this
 	   
-		    glBindFramebuffer(GL_FRAMEBUFFER, bufferFBO);
+		glBindFramebuffer(GL_FRAMEBUFFER, bufferFBO);
 	    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-		    GL_TEXTURE_2D, bufferDepthTex, 0);
+	    GL_TEXTURE_2D, bufferDepthTex, 0);
 	    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT,
-		    GL_TEXTURE_2D, bufferDepthTex, 0);
+		GL_TEXTURE_2D, bufferDepthTex, 0);
 	    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-		   GL_TEXTURE_2D, bufferColourTex[0], 0);
+		GL_TEXTURE_2D, bufferColourTex[0], 0);
 	    // We can check FBO attachment success using this command !
 	    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	    glEnable(GL_DEPTH_TEST);
@@ -62,7 +77,9 @@ Renderer ::~Renderer(void) {
 }
 void Renderer::UpdateScene(float msec) {
 	 camera -> UpdateCamera(msec);
-	 viewMatrix = camera -> BuildViewMatrix();}
+	 viewMatrix = camera -> BuildViewMatrix();
+}
+
 void Renderer::RenderScene() {
 
 	DrawScene();
@@ -86,7 +103,9 @@ void Renderer::DrawScene() {
 
 	glUseProgram(0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
+
+}
+
 void Renderer::DrawPostProcess() {
 	glBindFramebuffer(GL_FRAMEBUFFER, processFBO);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
@@ -100,17 +119,17 @@ void Renderer::DrawPostProcess() {
 
 	glDisable(GL_DEPTH_TEST);
 
-	glUniform2f(glGetUniformLocation(currentShader->GetProgram(), " pixelSize "), 1.0f / width, 1.0f / height);
+	glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / width, 1.0f / height);
 
 	for (int i = 0; i < POST_PASSES; ++i) {
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
 			GL_TEXTURE_2D, bufferColourTex[1], 0);
-		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), " isVertical "), 0);
+		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "isVertical"), 0);
 
 		quad->SetTexture(bufferColourTex[0]);
 		quad->Draw();
 		// Now to swap the colour buffers , and do the second blur pass
-		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), " isVertical "), 1);
+		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "isVertical"), 1);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
 			GL_TEXTURE_2D, bufferColourTex[0], 0);
 

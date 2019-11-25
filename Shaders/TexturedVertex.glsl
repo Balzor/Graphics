@@ -10,10 +10,15 @@ in vec2 texCoord;
 
 out Vertex {
 	vec2 texCoord;
+	vec4 colour ;
 } OUT;
 
 void main(void) {
 	mat4 mvp = projMatrix * viewMatrix * modelMatrix;
 	gl_Position = mvp * vec4(position, 1.0);
 	OUT.texCoord = (textureMatrix * vec4(texCoord, 0.0, 1.0)).xy;
+
+
+	//gl_Position = projMatrix *  vec4(position, 1.0);
+	//OUT.texCoord = texCoord;
 }
