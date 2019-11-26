@@ -8,6 +8,7 @@
 #include "textmesh.h"
 #include "../../nclgl/OBJMesh.h"
 #include <sstream>
+#include "ParticleEmitter.h"	//A new class!
 
 #define SHADOWSIZE 2048
 # define POST_PASSES 10
@@ -23,14 +24,23 @@ public:
 	void DrawTexts(const std::string& text, const Vector3& position, const float size = 10.0f, const bool perspective = false);
 
 	void SetFps(float s) { fps = s; }
+
+	void	SetShaderParticleSize(float f);	
+
+	ParticleEmitter* emitter;	
 protected:
+	//tesseletion
+	Shader* tessShader;
+	//particles
+	Shader* particleShader;
+	void DrawEmitter();
+
 	float fps;
 	//show text on screen
 	//using skybox water etc
 	void DrawHeightMap();
 	void DrawWater();
 	void DrawSkybox();
-	void MotionBlurPass();
 	float waterRotate;
 
 	//postpross
@@ -40,6 +50,9 @@ protected:
 	GLuint bufferColourTex[2];
 	void PresentScene();
 	void DrawPostProcess();
+	void Shaky();
+	GLuint fbo, fbo_texture, rbo_depth;
+	GLuint vbo_fbo_vertices;
 
 	void DrawHouses();
 	void DrawHumans();
@@ -47,10 +60,10 @@ protected:
 	void DrawLava();
 	void DrawMoon();
 	void DrawCampFire();
+	void DrawLake();
 	//using shadows
 	void DrawSun();
 	void DrawKaiju();
-	void DrawFloor();
 	void DrawShadowScene();
 	void DrawCombinedScene();
 
@@ -61,7 +74,6 @@ protected:
 	GLuint shadowTex;
 	GLuint shadowFBO;
 
-	Mesh* floor;
 	MD5FileData* hellData;
 	MD5Node* hellNode;
 	MD5FileData* bobData;
@@ -76,11 +88,14 @@ protected:
 	Shader* skeletonShader;
 	Shader* gammaShader;
 	Shader* processShader;
+	Shader* simpleShader;
 
 	HeightMap* heightMap;
-	Mesh* quad;
+	
 	Mesh* quad2;
 	Mesh* lava;
+	Mesh* quad;
+	Mesh* lake;
 	
 
 	//always here
@@ -93,7 +108,7 @@ protected:
 	Light* campfireLight;
 
 	Camera* camera;
-	Camera* cameraAbove;
+	Camera* camera2;
 
 	GLuint cubeMap;
 	GLuint cubeMapNight;
@@ -103,6 +118,8 @@ protected:
 
 	Font* basicFont;
 
+	OBJMesh* sea;
+	//OBJMesh* lake;
 	OBJMesh* sun;
 	OBJMesh* moon;
 	OBJMesh* house1;

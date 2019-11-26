@@ -3,24 +3,30 @@
 int heightport = 720;
 int widthport = 1024;
 Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
-
 	Vector2 v = parent.GetScreenSize();
 	widthport = v.x;
 	heightport = v.y;
 
-	//https://blackboard.ncl.ac.uk/bbcswebdav/pid-3988113-dt-content-rid-13884232_1/courses/J1920-CSC8502/Tutorial%2011%20-%20Geometry%20Shader%20Focus.pdf
-	//https://blackboard.ncl.ac.uk/bbcswebdav/pid-3988112-dt-content-rid-13884233_1/courses/J1920-CSC8502/Tutorial%2012%20-%20Tessellation%20Shader%20Focus.pdf
 	camera = new Camera();
 	camera->SetPosition(Vector3(20.0f, 2000, 5000.0f));
 
 	heightMap = new HeightMap(TEXTUREDIR"/heightmaps/volcano.raw");
 	heightMap->SetTexture(SOIL_load_OGL_texture(TEXTUREDIR"rocks.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
-	//heightMap->SetBumpMap(SOIL_load_OGL_texture(TEXTUREDIR"rocks_N.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
-	quad = Mesh::GenerateQuad();
 	quad2 = Mesh::GenerateQuad();
+
+	quad = Mesh::GenerateQuad();;
 	quad->SetTexture(SOIL_load_OGL_texture(TEXTUREDIR"cartoonWater.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 	quad->SetBumpMap(SOIL_load_OGL_texture(TEXTUREDIR"cartoonWater_N.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
+
+	sea = new OBJMesh();
+	sea->LoadOBJMesh(MESHDIR"SEA.obj");
+	sea->SetTexture(SOIL_load_OGL_texture(TEXTUREDIR"cartoonWater.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
+	sea->SetBumpMap(SOIL_load_OGL_texture(TEXTUREDIR"cartoonWater_N.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
+
+	lake = Mesh::GenerateQuad();
+	lake->SetTexture(SOIL_load_OGL_texture(TEXTUREDIR"cartoonWater.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
+	lake->SetBumpMap(SOIL_load_OGL_texture(TEXTUREDIR"cartoonWater_N.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
 	lava = Mesh::GenerateQuad();
 	lava->SetTexture(SOIL_load_OGL_texture(TEXTUREDIR"lava_0.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
@@ -37,11 +43,6 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 	if (!campfire->GetTexture() || !campfire->GetBumpMap()) {
 		return;
 	}
-
-	floor = Mesh::GenerateQuad();
-	floor->SetTexture(SOIL_load_OGL_texture(TEXTUREDIR"Asphalt road texture-1.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
-	floor->SetBumpMap(SOIL_load_OGL_texture(TEXTUREDIR"asphaltBumpMap.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
-
 	sun = new OBJMesh();
 	sun->LoadOBJMesh(MESHDIR"sphere.obj");
 	sun->SetTexture(SOIL_load_OGL_texture(TEXTUREDIR"water.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
@@ -53,7 +54,6 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 	moon->SetBumpMap(SOIL_load_OGL_texture(TEXTUREDIR"moon_N.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 	moonlight = new Light(Vector3(-2000.0f, 4000.0f, .0f), Vector4(1, 1, 1, 1), 50000.0f);
 	moonlight2 = new Light(Vector3(-2000.0f, 4000.0f, .0f), Vector4(0.31, 0.41, 0.53, 1), 50000.0f);
-	//31, 41.2, 53.3
 
 	//emptylight
 	emptyLight = new Light(Vector3(-4000.0f, 4000.0f, .0f), Vector4(1, 1, 1, 1), 0.0f);
@@ -104,9 +104,20 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 
 	processShader = new Shader(SHADERDIR"TexturedVertex.glsl", SHADERDIR"processfrag.glsl");
 
-	if (!processShader->LinkProgram() || !gammaShader->LinkProgram() || !heightmapshader->LinkProgram() || !reflectShader->LinkProgram() || !skyboxShader->LinkProgram() || !lightShader->LinkProgram() || !sceneShader->LinkProgram() || !shadowShader->LinkProgram() ||!textShader->LinkProgram()) {
+	simpleShader = new Shader(SHADERDIR"simplevertex.glsl", SHADERDIR"simplefragment.glsl");
+
+	particleShader = new Shader(SHADERDIR"vertex.glsl",
+		SHADERDIR"fragment.glsl"
+		,SHADERDIR"geometry.glsl"
+	);
+
+	tessShader = new Shader(SHADERDIR"tessVert.glsl", SHADERDIR"displaceFrag.glsl","", SHADERDIR"displaceTCS.glsl",SHADERDIR"displaceTES.glsl");
+
+	if (!tessShader->LinkProgram() || !particleShader->LinkProgram() || !simpleShader->LinkProgram() || !processShader->LinkProgram() || !gammaShader->LinkProgram() || !heightmapshader->LinkProgram() || !reflectShader->LinkProgram() || !skyboxShader->LinkProgram() || !lightShader->LinkProgram() || !sceneShader->LinkProgram() || !shadowShader->LinkProgram() ||!textShader->LinkProgram()) {
 		return;
 	}
+
+	emitter = new ParticleEmitter();
 
 	glGenTextures(1, &shadowTex);
 	glBindTexture(GL_TEXTURE_2D, shadowTex);
@@ -122,43 +133,14 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 	glDrawBuffer(GL_NONE);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	GLuint fxFbo;
-	GLuint fxDrawBuffers[1];
-	glGenFramebuffers(1, &fxFbo);
-	glBindFramebuffer(GL_FRAMEBUFFER, fxFbo);
-	fxDrawBuffers[0] = GL_COLOR_ATTACHMENT0;
-	glDrawBuffers(1, fxDrawBuffers);
-	const int FX_TEXTURE_COUNT = 2;
-	GLuint fxTextures[FX_TEXTURE_COUNT];
-	glGenTextures(FX_TEXTURE_COUNT, fxTextures);
-	for (int i = 0; i < FX_TEXTURE_COUNT; ++i)
-	{
-		glBindTexture(GL_TEXTURE_2D, fxTextures[i]);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	}
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fxTextures[0], 0);
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-	{
-		fprintf(stderr, "Error on building framebuffern");
-		exit(EXIT_FAILURE);
-	}
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	// Generate our scene depth texture ...
 	glGenTextures(1, &bufferDepthTex);
 	glBindTexture(GL_TEXTURE_2D, bufferDepthTex);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height,
-		0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height,0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
 
-	// And our colour texture ...
 	for (int i = 0; i < 2; ++i) {
 		glGenTextures(1, &bufferColourTex[i]);
 		glBindTexture(GL_TEXTURE_2D, bufferColourTex[i]);
@@ -166,23 +148,16 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
-			GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 	}
-	glGenFramebuffers(1, &bufferFBO); // We ’ll render the scene into this
-	glGenFramebuffers(1, &processFBO); // And do post processing in this
+	glGenFramebuffers(1, &bufferFBO); 
+	glGenFramebuffers(1, &processFBO);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, bufferFBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-		GL_TEXTURE_2D, bufferDepthTex, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT,
-		GL_TEXTURE_2D, bufferDepthTex, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-		GL_TEXTURE_2D, bufferColourTex[0], 0);
-	// We can check FBO attachment success using this command !
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,GL_TEXTURE_2D, bufferDepthTex, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT,GL_TEXTURE_2D, bufferDepthTex, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D, bufferColourTex[0], 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	
 
 	basicFont = new Font(SOIL_load_OGL_texture(TEXTUREDIR"tahoma.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_COMPRESS_TO_DXT), 16, 16);
 
@@ -196,7 +171,6 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 		SOIL_LOAD_RGB,
 		SOIL_CREATE_NEW_ID, 0
 	);
-
 	cubeMapNight = SOIL_load_OGL_cubemap(
 		TEXTUREDIR"skymaps/darkskies_ft.tga",
 		TEXTUREDIR"skymaps/darkskies_bk.tga",
@@ -207,13 +181,12 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 		SOIL_LOAD_RGB,
 		SOIL_CREATE_NEW_ID, 0
 	);
-
 	if (!cubeMapNight || !cubeMap || !quad->GetTexture() || !heightMap->GetTexture() ) {
 		return;
 	}
-
-	SetTextureRepeating(floor->GetTexture(), true);
 	SetTextureRepeating(tree1->GetTexture(), true);
+	SetTextureRepeating(sea->GetTexture(), true);
+	SetTextureRepeating(lake->GetTexture(), true);
 	SetTextureRepeating(quad->GetTexture(), true);
 	SetTextureRepeating(lava->GetTexture(), true);
 	SetTextureRepeating(heightMap->GetTexture(), true);
@@ -241,16 +214,13 @@ Renderer::Renderer(Window& parent) :OGLRenderer(parent) {
 	glActiveTexture(GL_TEXTURE5);
 	glBindTexture(GL_TEXTURE_2D, rockTex);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-	//glEnable(GL_CULL_FACE);
-	
 }
 Renderer::~Renderer(void) {
+	delete emitter;
 	glDeleteTextures(1, &shadowTex);
 	glDeleteFramebuffers(1, &shadowFBO);
 	delete camera;
@@ -289,130 +259,140 @@ bool rotateAnim = true;
 bool death=true;
 int counterPosition = 0;
 bool destroyScene = false;
-vector<Matrix4> storage;
-Matrix4 lol;
-int countFrames=0;
+float time2;
+float time3;
+bool stop = false;
+int speedCam = 100;
 void Renderer::UpdateScene(float msec) {
-	projMatrix = Matrix4::Perspective(10.0f, 150000.0f, (float)width / (float)height, 45.0f);
-
-	camera->UpdateCamera(msec);
-	viewMatrix = camera->BuildViewMatrix();
-
-
-	//light circling
-	 Vector3 lightPos = light->GetPosition();
-	 Matrix4 sunRot = Matrix4::Rotation(msec/100,Vector3(0,1,0));
-	 lightPos = sunRot * lightPos;
-	 light->SetPosition(lightPos);
-	//end of light
-	//moon circle
-	 Vector3 moonPos = moonlight->GetPosition();
-	 Matrix4 moonRot = Matrix4::Rotation(msec / 50, Vector3(0, 0, 1));
-	 moonPos = moonRot * moonPos;
-	 moonlight->SetPosition(moonPos);
-	 moonlight2->SetPosition(moonPos);
-	//end moon circle
-
-	waterRotate += msec / 1000.0f;
-
-	//scale model
-	if (counter < 100) {
-		Vector3 node = hellNode->GetModelScale();
-		Matrix4 big = Matrix4::Scale(Vector3(1.01, 1.01, 1.01));
-		node = big * node;
-		hellNode->SetModelScale(node);
-		counter++;
+	time2+=msec;
+	time3 = msec;
+	if (Window::GetKeyboard()->KeyDown(KEYBOARD_Z)) {
+		speedCam +=1;
 	}
-	//demon start walking towards the village
-	if (death == true) {
-		if (counterMove > 1265 / 5 - 10) {
-			if (counterPosition < 300) {
-				Matrix4 positiondemon = hellNode->GetWorldTransform();
-				Matrix4 movedemon = Matrix4::Translation(Vector3(-2, 0, 0));
-				positiondemon = movedemon * positiondemon;
-				hellNode->SetTransform(positiondemon);
-				if (played) {
-					hellNode->PlayAnim(MESHDIR"walk7.md5anim");
-					played = false;
-				}
-			//	countFrames++;
-			//	Matrix4 tempStorage=lol;
-			//	hellNode->GetJointWorldTransform("origin", lol);
-			//	cout << lol;
-
-				//storage.push_back(lol);
-				//if (countFrames == 36) {
-					//countFrames = 0;
-					//hellNode->SetTransform(lol);
-				//}
-				//if (lol.values[12] > tempStorage.values[12]) {
-					//cout << "lololol";
-				///	hellNode->SetTransform(lol);
-				//}
-			}
-			//demon attacks the house
-			if (counterPosition >= 250) {
-				if (playedAttack == true) {
-					hellNode->PlayAnim(MESHDIR"attack2.md5anim");
-					playedAttack = false;
-				}
-				Vector3 position = house1->GetPosition();
-				Matrix4 move = Matrix4::Translation(Vector3(0, -1, 0));
-				position = move * position;
-				house1->SetPosition(position);
-			}
-			//demon turns towards the volcano
-			if (counterPosition > 300) {
-				if (rotateAnim == true) {
-					hellNode->SetModelScale(Vector3(-3, 3, -3));
-					//hellNode->PlayAnim(MESHDIR"idle2.md5anim");
-					hellNode->PlayAnim(MESHDIR"walk7.md5anim");
-					rotateAnim = false;
-				}
-				//demon walks to the volcano
-				Matrix4 positiondemon = hellNode->GetWorldTransform();
-				Matrix4 movedemon = Matrix4::Translation(Vector3(2, 0, 0));
-				positiondemon = movedemon * positiondemon;
-				hellNode->SetTransform(positiondemon);
-			}
-			if (counterPosition > 700) {
-				Matrix4 positiondemon = hellNode->GetWorldTransform();
-				Matrix4 movedemon = Matrix4::Translation(Vector3(1, -2, 1));
-				positiondemon = movedemon * positiondemon;
-				hellNode->SetTransform(positiondemon);
-			}
-			
-			counterPosition++;
+	if (Window::GetKeyboard()->KeyDown(KEYBOARD_X)) {
+		speedCam -=1;
+		if (speedCam <= 0) {
+			speedCam = 0;
 		}
 	}
 
-	//end of scale model
-	//move houses
-	if (counterMove < 1265/5) {
-		//Vector3(-1100, 1265, -850)
-		Vector3 position = house1->GetPosition();
-		Matrix4 positionbob = bobNode->GetWorldTransform();
-
-		Matrix4 move = Matrix4::Translation(Vector3(0, 5, 0));
-		Matrix4 movebob = Matrix4::Translation(Vector3(0, 5, 0));
-
-		position = move * position;
-		positionbob = movebob * positionbob;
-
-		house1->SetPosition(position);
-		bobNode->SetTransform(positionbob);
-
-		counterMove++;
+	if (Window::GetKeyboard()->KeyTriggered(KEYBOARD_P)) {
+		stop = !stop;
 	}
-	//end of move houses
+	if (stop) {
+		msec = 0;
+	}
+	projMatrix = Matrix4::Perspective(10.0f, 150000.0f, (float)width / (float)height, 45.0f);
+	emitter->Update(msec);
+	camera->UpdateCamera(speedCam);
+	viewMatrix = camera->BuildViewMatrix();
 
-	hellNode->Update(msec);
-	bobNode->Update(msec);
+	 Vector3 lightPos = light->GetPosition();
+	 Matrix4 sunRot = Matrix4::Rotation(time3 /100,Vector3(0,1,0));
+	 lightPos = sunRot * lightPos;
+	 light->SetPosition(lightPos);
+
+	 Vector3 moonPos = moonlight->GetPosition();
+	 Matrix4 moonRot = Matrix4::Rotation(time3 / 50, Vector3(0, 0, 1));
+	 moonPos = moonRot * moonPos;
+	 moonlight->SetPosition(moonPos);
+	 moonlight2->SetPosition(moonPos);
+
+	if (Window::GetKeyboard()->KeyTriggered(KEYBOARD_R)) {
+		counter = 0;
+		counterMove = 0;
+		counterPosition = 0;
+		played = true;
+		playedAttack = true;
+		hellNode->SetModelScale(Vector3(1, 1, 1));
+		hellNode->PlayAnim(MESHDIR"idle2.md5anim");
+		house1->SetPosition(Vector3(-1100, 0, -850));
+
+		Matrix4 move = Matrix4::Translation(Vector3(0, 0, 0));
+		hellNode->SetTransform(move);
+
+		Matrix4 move2 = Matrix4::Translation(Vector3(0, 0, 0));
+		bobNode->SetTransform(move2);
+	}
+	if (!stop) {
+		waterRotate += msec / 1000.0f;
+
+		if (counter < 100) {
+			Vector3 node = hellNode->GetModelScale();
+			Matrix4 big = Matrix4::Scale(Vector3(1.01, 1.01, 1.01));
+			node = big * node;
+			hellNode->SetModelScale(node);
+			counter++;
+		}
+		if (death == true) {
+			if (counterMove > 1265 / 5 - 10) {
+				if (counterPosition < 300) {
+					Matrix4 positiondemon = hellNode->GetWorldTransform();
+					Matrix4 movedemon = Matrix4::Translation(Vector3(-2, 0, 0));
+					positiondemon = movedemon * positiondemon;
+					hellNode->SetTransform(positiondemon);
+					if (played) {
+						hellNode->PlayAnim(MESHDIR"walk7.md5anim");
+						played = false;
+					}
+				}
+				if (counterPosition >= 250) {
+					if (playedAttack == true) {
+						hellNode->PlayAnim(MESHDIR"attack2.md5anim");
+						playedAttack = false;
+					}
+					Vector3 position = house1->GetPosition();
+					Matrix4 positionbob = bobNode->GetWorldTransform();
+					Matrix4 move = Matrix4::Translation(Vector3(0, -1, 0));
+					Matrix4 movebob = Matrix4::Translation(Vector3(0, -1, 0));
+					position = move * position;
+					positionbob = movebob * positionbob;
+					house1->SetPosition(position);
+					bobNode->SetTransform(positionbob);
+				}
+				if (counterPosition > 300) {
+					if (rotateAnim == true) {
+						hellNode->SetModelScale(Vector3(-3, 3, -3));
+						hellNode->PlayAnim(MESHDIR"walk7.md5anim");
+						rotateAnim = false;
+					}
+					Matrix4 positiondemon = hellNode->GetWorldTransform();
+					Matrix4 movedemon = Matrix4::Translation(Vector3(2, 0, 0));
+					positiondemon = movedemon * positiondemon;
+					hellNode->SetTransform(positiondemon);
+				}
+				if (counterPosition > 700) {
+					Matrix4 positiondemon = hellNode->GetWorldTransform();
+					Matrix4 movedemon = Matrix4::Translation(Vector3(1, -2, 1));
+					positiondemon = movedemon * positiondemon;
+					hellNode->SetTransform(positiondemon);
+				}
+				counterPosition++;
+			}
+		}
+		if (counterMove < 1265 / 5) {
+			Vector3 position = house1->GetPosition();
+			Matrix4 positionbob = bobNode->GetWorldTransform();
+
+			Matrix4 move = Matrix4::Translation(Vector3(0, 5, 0));
+			Matrix4 movebob = Matrix4::Translation(Vector3(0, 5, 0));
+
+			position = move * position;
+			positionbob = movebob * positionbob;
+
+			house1->SetPosition(position);
+			bobNode->SetTransform(positionbob);
+
+			counterMove++;
+		}
+		hellNode->Update(msec);
+		bobNode->Update(msec);
+	}
+	
 }
 bool divided_view_port=false;
+bool show_info = false;
 bool blurr=false;
-int w = widthport;
-int h = heightport;
 void Renderer::RenderScene() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	
@@ -421,52 +401,69 @@ void Renderer::RenderScene() {
 	if (Window::GetKeyboard()->KeyTriggered(KEYBOARD_K)) {
 		divided_view_port = !divided_view_port;
 	}
-	/*if (Window::GetKeyboard()->KeyDown(KEYBOARD_J)) {
-		divided_view_port = false;
-	}*/
 	if (Window::GetKeyboard()->KeyTriggered(KEYBOARD_J)) {
 		blurr = !blurr;
 	}
-	
-	// normal mode
 	if (!divided_view_port) {
-		glViewport(0, 0, w, h);
+		glViewport(0, 0, width, height);
 
-		if (!blurr) {
+		if (blurr) {
 			glBindFramebuffer(GL_FRAMEBUFFER, bufferFBO);
 			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		}
-		
 		DrawCombinedScene();
 
-		if (!blurr) {
+		if (blurr) {
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			DrawPostProcess();
 			PresentScene();
 		}
 	}else{
 		projMatrix = Matrix4::Perspective(10.0f, 150000.0f, (float)width / ((float)height / 2), 45.0f);
-		// left bottom
-		glViewport(0, 0, widthport, heightport / 2);
+		
+		glViewport(0, 0, width, height / 2);
 		DrawCombinedScene();
 
 		projMatrix = Matrix4::Perspective(10.0f, 150000.0f, (float)width / ((float)height/2), 45.0f);
-		// top left
-		glViewport(0, heightport / 2, widthport, heightport / 2);
+		
+		glViewport(0, height / 2, width, height / 2);
 		DrawCombinedScene();
 	}
-	glViewport(0, 0, w, h);
-	//DrawCombinedScene();
-	
+	glViewport(0, 0, width, height);
+
+	if (Window::GetKeyboard()->KeyTriggered(KEYBOARD_Q)) {
+		show_info = !show_info;
+	}
+	if (show_info) {
+		SetCurrentShader(textShader);
+		glDisable(GL_DEPTH_TEST);
+		stringstream s;
+		s << fps;
+		int temp = 60;
+		DrawTexts("FPS:" + s.str(), Vector3(0, temp, 0), 17.0f);
+		DrawTexts("(Z) Increase CamSpeed", Vector3(0, 532 - temp, 0), 17.0f);
+		DrawTexts("(X) Lower CamSpeed", Vector3(0, 549 - temp, 0), 17.0f);
+		DrawTexts("(P) Freeze Screen", Vector3(0, 566 - temp, 0), 17.0f);
+		DrawTexts("(Q) Toggle Help", Vector3(0, -17+600 - temp, 0), 17.0f);
+		DrawTexts("(U) Disable autoCam", Vector3(0, 600 - temp, 0), 17.0f);
+		DrawTexts("(T) Enable autoCam", Vector3(0, 616 - temp, 0), 17.0f);
+		DrawTexts("(L) Hold SunCam", Vector3(0, 633 - temp, 0), 17.0f);
+		DrawTexts("(M) Hold MoonCam", Vector3(0, 650 - temp, 0), 17.0f);
+		DrawTexts("(F) Destroy Island", Vector3(0, 667 - temp, 0), 17.0f);
+		DrawTexts("(G) Rebuild Island", Vector3(0, 684 - temp, 0), 17.0f);
+		DrawTexts("(K) Toggle SplitScreen", Vector3(0, 701 - temp, 0), 17.0f);
+		DrawTexts("(J) Toggle Blur", Vector3(0, 718 - temp, 0), 17.0f);
+		glEnable(GL_DEPTH_TEST);
+	}
 	SwapBuffers();
 }
-
+void Renderer::SetShaderParticleSize(float f) {
+	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "particleSize"), f);
+}
 void Renderer::DrawTexts(const std::string& text, const Vector3& position, const float size, const bool perspective) {
 	TextMesh* mesh = new TextMesh(text, *basicFont);
 	if (perspective) {
-		//	modelMatrix = Matrix4::Translation(position) * Matrix4::Scale(Vector3(size, size, 1));
-		//	viewMatrix = camera->BuildViewMatrix();
-		//	projMatrix = Matrix4::Perspective(1.0f, 10000.0f, (float)width / (float)height, 45.0f);
+		return;
 	}
 	else {
 		modelMatrix = Matrix4::Translation(Vector3(position.x, height - position.y, position.z)) * Matrix4::Scale(Vector3(size, size, 1));
@@ -478,6 +475,8 @@ void Renderer::DrawTexts(const std::string& text, const Vector3& position, const
 	mesh->Draw();
 	delete mesh;
 }
+bool rebuild = false;
+
 void Renderer::DrawShadowScene() {
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
 	glClear(GL_DEPTH_BUFFER_BIT);
@@ -487,32 +486,29 @@ void Renderer::DrawShadowScene() {
 	viewMatrix = Matrix4::BuildViewMatrix(light->GetPosition(), Vector3(0, 0, 0));
 	shadowMatrix = biasMatrix * (projMatrix * viewMatrix);
 
-
 	DrawHeightMap();
 	
 	DrawLava();
 	DrawWater();
 	SetCurrentShader(shadowShader);
 	DrawMoon();
-	DrawFloor();
-	DrawKaiju();
-	DrawHumans();
-	DrawHouses();
-	DrawTrees();
-	DrawCampFire();
-
-
+	if (!destroyScene) {
+		DrawKaiju();
+		DrawHumans();
+		DrawHouses();
+		DrawTrees();
+		DrawCampFire();
+	}
+	
 	UpdateShaderMatrices();
 	glUseProgram(0);
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	glViewport(0, 0, width, height);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
-
 void Renderer::DrawCombinedScene() {
 	modelMatrix.ToIdentity();
 	textureMatrix.ToIdentity();
-	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	SetCurrentShader(sceneShader);
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "diffuseTex"), 0);
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "bumpTex"), 1);
@@ -525,8 +521,6 @@ void Renderer::DrawCombinedScene() {
 
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, shadowTex);
-	//glActiveTexture(GL_TEXTURE3);
-	//glBindTexture(GL_TEXTURE_2D, sandTex);
 
 	viewMatrix = camera->BuildViewMatrix();
 
@@ -547,43 +541,31 @@ void Renderer::DrawCombinedScene() {
 	DrawSkybox();
 	DrawHeightMap();
 	DrawLava();
+
+
 	DrawWater();
+
+	
 	SetCurrentShader(sceneShader);
-	DrawKaiju();
-	DrawHumans();
-	SetCurrentShader(sceneShader);
-	DrawFloor();
+	if (!destroyScene) {
+		DrawKaiju();
+		DrawHumans();
+		DrawHouses();
+		DrawTrees();
+		DrawCampFire();
+		DrawLake();
+	};
+	
 	DrawSun();
 	DrawMoon();
-	DrawHouses();
-	DrawTrees();
-	DrawCampFire();
+	DrawEmitter();
+	
 
 	glUseProgram(0);
-
-
-	//for texts
-	SetCurrentShader(textShader);
-	glDisable(GL_DEPTH_TEST);
-	stringstream s;
-	s << fps;
-	int temp = 60;
-	DrawTexts("FPS:" + s.str(), Vector3(0, 0, 0), 17.0f);
-	DrawTexts("(U) disable autoCam", Vector3(0, 600 - temp, 0), 17.0f);
-	DrawTexts("(T) enable  autoCam", Vector3(0,616 - temp, 0), 17.0f);
-	DrawTexts("Hold(L) SunCam", Vector3(0,633 - temp, 0), 17.0f);
-	DrawTexts("Hold(M) MoonCam", Vector3(0,650 - temp, 0), 17.0f);
-	DrawTexts("(F) Destroy Isand", Vector3(0,667 - temp, 0), 17.0f);
-	DrawTexts("(G) Rebuild Island", Vector3(0,684 - temp, 0), 17.0f);
-	DrawTexts("(K) Toggle Split", Vector3(0,701 - temp, 0), 17.0f);
-	DrawTexts("(J) Toggle Blur", Vector3(0,718 - temp, 0), 17.0f);
-	glEnable(GL_DEPTH_TEST);
 }
-
 void Renderer::DrawSkybox() {
 	modelMatrix.ToIdentity();
 	textureMatrix.ToIdentity();
-	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glDepthMask(GL_FALSE);
 	glDisable(GL_CULL_FACE);
 	SetCurrentShader(skyboxShader);
@@ -609,28 +591,14 @@ void Renderer::DrawSkybox() {
 	}
 
 	quad->Draw();
-	//lava->Draw();
 
 	glUseProgram(0);
 	glDepthMask(GL_TRUE);
 	glEnable(GL_CULL_FACE);
 }
-
-void Renderer::DrawFloor() {
-	modelMatrix = Matrix4::Rotation(90, Vector3(1, 0, 0)) *
-		Matrix4::Scale(Vector3(100, 100, 1));
-		Matrix4 tempMatrix = shadowMatrix * modelMatrix;
-
-	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "shadowMatrix"), 1, false, *&tempMatrix.values);
-
-	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "modelMatrix"), 1, false, *&modelMatrix.values);
-
-	floor->Draw();	
-}
 float time = 0.0f;
 bool start = true;
 bool destroy = false;
-bool rebuild = false;
 void Renderer::DrawHeightMap() {
 	SetCurrentShader(heightmapshader);
 	SetShaderLight({ *light, *lavaLight, *campfireLight,*moonlight2 });
@@ -693,7 +661,6 @@ void Renderer::DrawHeightMap() {
 	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "shadowMatrix"), 1, false, *&tempMatrix.values);
 	
 	heightMap->Draw();
-	//glUseProgram(0);
 }
 float timeLava = 0.0f;
 void Renderer::DrawLava() {
@@ -704,9 +671,6 @@ void Renderer::DrawLava() {
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "diffuseTex"), 0);
 
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "cubeTex"), 2);
-
-	//glActiveTexture(GL_TEXTURE2);
-	//glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMap);
 
 	if (!destroyScene) {
 		if (timeLava < 1.0f) {
@@ -736,13 +700,11 @@ void Renderer::DrawLava() {
 	UpdateShaderMatrices();
 
 	lava->Draw();
-
-	//glUseProgram(0);
 }
 
 void Renderer::DrawWater() {
 	glDepthMask(GL_FALSE);
-	SetCurrentShader(reflectShader);
+	SetCurrentShader(tessShader);
 	SetShaderLight({ *light, *emptyLight,*emptyLight,*emptyLight });
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"),1, (float*)& camera->GetPosition());
 
@@ -750,37 +712,37 @@ void Renderer::DrawWater() {
 
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "cubeTex"), 2);
 
-	glActiveTexture(GL_TEXTURE2);
-
-	glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMap);
-	if (moonlight->GetPosition().y > 0) {
-		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMap);
-	}
-	else {
-		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapNight);
-	}
+	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "time"), time2 * 0.01f);
 
 	modelMatrix = Matrix4::Translation(Vector3(1,150,1)) *
 					Matrix4::Scale(Vector3(1000000, 1, 1000000)) *
-					Matrix4::Rotation(90, Vector3(1.0f, 0.0f, 0.0f));
+					Matrix4::Rotation(0, Vector3(1.0f, 0.0f, 0.0f));
 
 	textureMatrix= Matrix4::Scale(Vector3(1000.0f, 1000.0f, 1000.0f))*
 			Matrix4::Rotation(waterRotate/100, Vector3(0.0f, 0.0f, 1.0f));
 
 	UpdateShaderMatrices();
 
-	quad->Draw();
+	vector<Vector3> verts = { 
+		Vector3(-1.0f,1.0f,0.0f),
+		Vector3(-1.0f,1.0f,0.0f),
+		Vector3(1.0f,1.0f,0.0f),
+		Vector3(1.0f,1.0f,0.0f) 
+	};
+	vector<Vector2> texCoords = {
+		Vector2(0.0f,1.0f),
+		Vector2(0.0f,0.0f),
+		Vector2(1.0f,1.0f),
+		Vector2(1.0f,0.0f)
+	};
+	sea->Patches();
+	glPatchParameteri(GL_PATCH_VERTICES, 3);
 
-	//glUseProgram(0);
+	sea->Draw();
+	
 	glDepthMask(GL_TRUE);
-
  }
 void Renderer::DrawKaiju() {
-	//SetCurrentShader(skeletonShader);
 	SetShaderLight({ *light, *campfireLight,*lavaLight,*moonlight2 });
 	UpdateShaderMatrices();
 	modelMatrix = Matrix4::Translation(Vector3(-500,1265,-850))* (hellNode->GetWorldTransform() * Matrix4::Scale(hellNode->GetModelScale()));
@@ -797,13 +759,10 @@ void Renderer::DrawKaiju() {
 int humans = 10;
 float angle = 0.0f;
 void Renderer::DrawHumans() {
-	//SetCurrentShader(skeletonShader);
 	SetShaderLight({ *light, *campfireLight,*moonlight2,*emptyLight });
 	for (int i = 0; i < humans; i++) {
 		angle = 360 / humans;
 		modelMatrix = Matrix4::Translation(Vector3(-1100, 0, -850)) * Matrix4::Rotation(angle * i, Vector3(0, 1, 0)) * Matrix4::Translation(Vector3(100, 0, 0)) * Matrix4::Rotation(90, Vector3(0, 1, 0)) * (bobNode->GetWorldTransform() * Matrix4::Scale(Vector3(3, 3, 3)));
-
-		//modelMatrix = Matrix4::Translation(Vector3(-1200, 1265, -850)) * (bobNode->GetWorldTransform() * Matrix4::Scale(Vector3(3, 3, 3)));
 
 		Matrix4 tempMatrix = shadowMatrix * modelMatrix;
 		SetCurrentShader(sceneShader);
@@ -813,14 +772,13 @@ void Renderer::DrawHumans() {
 		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "shadowMatrix"), 1, false, *&tempMatrix.values);
 
 		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "modelMatrix"), 1, false, *&modelMatrix.values);
-		//glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "modelMatrix"), 1, false, (float*)& modelMatrix);
 
 		bobNode->Draw(*this);
 	}
 }
 void Renderer::DrawCampFire() {
 	float temp = 2000;
-	//SetShaderLight({ *light, *campfireLight,*emptyLight,*emptyLight });
+	SetShaderLight({ *light, *campfireLight,*emptyLight,*emptyLight });
 	modelMatrix = Matrix4::Translation(Vector3(-1100, 1265, -850)) * Matrix4::Scale(Vector3(temp, temp, temp));
 	Matrix4 tempMatrix = shadowMatrix * modelMatrix;
 
@@ -851,7 +809,29 @@ void Renderer::DrawHouses() {
 		house1->Draw();
 	}
 }
-//modelMatrix = Matrix4::Translation(Vector3(-1100, 1265, -850))
+void Renderer::DrawLake() {
+	SetCurrentShader(reflectShader);
+	SetShaderLight({ *light, *campfireLight,*moonlight2,*emptyLight });
+
+	modelMatrix = Matrix4::Translation(Vector3(-1100, 1265, -500)) *
+		Matrix4::Scale(Vector3(100, 1, 100)) *
+		Matrix4::Rotation(90, Vector3(1.0f, 0.0f, 0.0f));
+
+	textureMatrix = Matrix4::Scale(Vector3(100.0f, 100.0f, 100.0f)) *
+		Matrix4::Rotation(waterRotate / 100, Vector3(0.0f, 0.0f, 1.0f));
+	
+
+	Matrix4 tempMatrix = textureMatrix * modelMatrix;
+	UpdateShaderMatrices();
+
+	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"), 1, (float*)& camera->GetPosition());
+
+	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "diffuseTex"), 0);
+
+	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "cubeTex"), 2);
+
+	lake->Draw();
+}
 void Renderer::DrawTrees() {
 	SetShaderLight({ *light, *campfireLight,*moonlight2,*emptyLight });
 	modelMatrix = Matrix4::Translation(Vector3(-900, 1265, -950));
@@ -881,6 +861,7 @@ void Renderer::DrawSun() {
 
 	sun->Draw();
 }
+
 void Renderer::DrawMoon() {
 	float temp = 100;
 
@@ -895,7 +876,6 @@ void Renderer::DrawMoon() {
 	moon->Draw();
 }
 void Renderer::DrawPostProcess() {
-	
 	glBindFramebuffer(GL_FRAMEBUFFER, processFBO);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
 		GL_TEXTURE_2D, bufferColourTex[1], 0);
@@ -922,7 +902,7 @@ void Renderer::DrawPostProcess() {
 
 		quad2->SetTexture(bufferColourTex[0]);
 		quad2->Draw();
-		// Now to swap the colour buffers , and do the second blur pass
+
 		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "isVertical"), 1);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
 			GL_TEXTURE_2D, bufferColourTex[0], 0);
@@ -947,5 +927,25 @@ void Renderer::PresentScene() {
 	quad2->SetTexture(bufferColourTex[0]);
 	quad2->Draw();
 	glUseProgram(0);
+}
+void Renderer::DrawEmitter() {
+	glClearColor(0, 0, 0, 1);
+	SetCurrentShader(particleShader);
 
+	modelMatrix = Matrix4::Translation(Vector3(-1100, 1265, -850));
+
+	glUseProgram(currentShader->GetProgram());
+	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "diffuseTex"), 0);
+
+	SetShaderParticleSize(emitter->GetParticleSize());
+	
+	emitter->SetParticleSize(5.0f);
+	emitter->SetParticleVariance(1.0f);
+	emitter->SetLaunchParticles(10.0f);
+	emitter->SetParticleLifetime(250.0f/2);
+	emitter->SetParticleSpeed(.5f);
+	UpdateShaderMatrices();
+
+	emitter->Draw();
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }

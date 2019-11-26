@@ -28,12 +28,15 @@ public:
 	Vector3 GetPosition() const { return position; }
 	void SetPosition(Vector3 val) { position = val; }
 
+	void Patches();
+
 protected:
 	void GenerateTangents();
 	Vector3 GenerateTangent(const Vector3& a, const Vector3& b, const Vector3& c, const Vector2& ta, const Vector2& tb, const Vector2& tc );
 
 	void GenerateNormals();
 	void BufferData();
+
 
 	GLuint arrayObject;
 	GLuint bufferObject[MAX_BUFFER];

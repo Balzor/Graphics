@@ -197,6 +197,9 @@ Vector3 Mesh::GenerateTangent(const Vector3& a,const Vector3& b,const Vector3& c
 	float factor = 1.0f / (coord1.x * coord2.y - coord2.x * coord1.y);
 
 	return axis * factor;
+} 
+void Mesh::Patches() {
+	type = GL_PATCHES;
 }
 void Mesh::GenerateNormals() {
 	if (!normals) {

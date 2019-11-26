@@ -6,7 +6,7 @@
 #pragma comment(lib, "nclgl.lib")
 
 int main() {
-	Window w("Coursework!", 1024, 720, false);
+	Window w("Coursework!", 1920, 1080, true);
 	if (!w.HasInitialised()) {
 		return -1;
 	}

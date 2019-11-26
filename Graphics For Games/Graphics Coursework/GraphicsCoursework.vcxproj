@@ -75,12 +75,14 @@
   <ItemGroup>
     <ClCompile Include="CourseWork.cpp" />
     <ClCompile Include="HeightMap.cpp" />
+    <ClCompile Include="ParticleEmitter.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="TextMesh.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HeightMap.h" />
     <ClInclude Include="Light.h" />
+    <ClInclude Include="ParticleEmitter.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="TextMesh.h" />
   </ItemGroup>
