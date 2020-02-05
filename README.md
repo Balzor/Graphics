@@ -1,2 +1,2 @@
 # Graphics
-My graphics coursework for Advanced Graphics for Game at University of Newcastle
+My graphics coursework for Advanced Graphics for Games at University of Newcastle
